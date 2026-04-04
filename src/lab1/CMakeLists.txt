@@ -1,8 +1,8 @@
-set(target_name container)
+set(target_name image_processor)
 
 add_library(${target_name} STATIC
-  lab1/Container.cpp
-  lab1/Container.hpp)
+  lab1/ImageProcessor.cpp
+  lab1/ImageProcessor.hpp)
 
 target_include_directories(
   ${target_name}
