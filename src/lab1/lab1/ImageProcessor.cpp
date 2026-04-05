@@ -38,11 +38,13 @@ void ImageProcessor::ReadBMP(const fs::path &imagePath)
 
 void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> &v)
 {
+    fs::path outFile = resultDir / imageName;
+    
     std::ofstream file;
-    file.open(imageName, std::ios_base::binary);
+    file.open(outFile, std::ios_base::binary);
     if (!file.is_open())
     {
-        std::cout << "Error: Cannot open file " << imageName << std::endl;
+        std::cout << "Error: Cannot open file " << outFile << std::endl;
         return;
     }
 
