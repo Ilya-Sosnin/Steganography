@@ -4,14 +4,9 @@
 
 int main()
 {
-    fs::path resultDir = fs::path(PROJECT_ROOT) / "result";
-
-    if (!fs::exists(resultDir))
-        fs::create_directory(resultDir);
-
     std::unique_ptr<ImageProcessor> imgProc;
     imgProc = std::make_unique<ImageProcessor>();
-    fs::path pathDatasets = fs::path(PROJECT_ROOT) / "datasets/1/301.bmp";
+    fs::path pathDatasets = fs::path(PROJECT_ROOT) / "datasets/2/1.bmp";
 
     imgProc->ReadBMP(pathDatasets);
 

@@ -5,6 +5,7 @@
 #include <filesystem>
 
 ImageProcessor::ImageProcessor() {}
+
 ImageProcessor::~ImageProcessor() {}
 
 void ImageProcessor::ReadBMP(const fs::path &imagePath)
@@ -18,6 +19,7 @@ void ImageProcessor::ReadBMP(const fs::path &imagePath)
     }
 
     originalImageName = imagePath.stem().string();
+    originalImageDir = imagePath.parent_path().filename();
 
     file.read(reinterpret_cast<char *>(&headerBMP), sizeof(headerBMP));
     file.read(reinterpret_cast<char *>(&infoBMP), sizeof(infoBMP));
@@ -38,8 +40,13 @@ void ImageProcessor::ReadBMP(const fs::path &imagePath)
 
 void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> &v)
 {
-    fs::path outFile = resultDir / imageName;
-    
+    fs::path outDir = resultDir / originalImageDir;
+
+    if(!fs::exists(outDir))
+        fs::create_directories(outDir);
+
+    fs::path outFile = outDir / imageName;
+
     std::ofstream file;
     file.open(outFile, std::ios_base::binary);
     if (!file.is_open())
@@ -52,6 +59,7 @@ void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> 
     file.write(reinterpret_cast<char *>(&infoBMP), sizeof(infoBMP));
     file.write(reinterpret_cast<char *>(palette.data()), palette.size() * sizeof(uint32_t));
     file.write(reinterpret_cast<char *>(v.data()), v.size());
+    
     file.close();
 }
 
@@ -70,7 +78,7 @@ void ImageProcessor::ExtractBitPlane(int bitNum)
         imagePlane[i] = bit ? 255 : 0;
     }
 
-    std::string imageName = originalImageName + "_plane_bit_num" +
+    std::string imageName = originalImageName + "_plane_bit_" +
                             std::to_string(bitNum) + ".bmp";
     WriteBMP(imageName, imagePlane);
 }

@@ -49,9 +49,10 @@ private:
     int width{0};
     int height{0};
     std::string originalImageName;
-    
-    fs::path resultDir = fs::path(PROJECT_ROOT) / "result/";
-    fs::path messageDir = fs::path(PROJECT_ROOT) / "message/";
+
+    fs::path originalImageDir;
+    fs::path resultDir = fs::path(PROJECT_ROOT) / "result";
+    fs::path messageDir = fs::path(PROJECT_ROOT) / "message";
 
     std::vector<uint8_t> palette;
     std::vector<uint8_t> imageBinary;
