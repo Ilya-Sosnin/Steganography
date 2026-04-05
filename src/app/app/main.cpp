@@ -9,4 +9,9 @@ int main()
 
     std::string path = "../datasets/2/1.bmp";
     imgProc->ReadBMP(path);
+
+    for(size_t i = 1; i <= 8; ++i)
+        imgProc->ExtractBitPlane(i);
+
+    imgProc.reset();
 }

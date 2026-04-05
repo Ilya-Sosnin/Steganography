@@ -5,6 +5,9 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 #pragma pack(push, 1)
 struct BMPFileHeader
@@ -38,15 +41,18 @@ public:
     ImageProcessor();
     ~ImageProcessor();
 
-    void ReadBMP(const std::string &imagePath);
-    void ExtractBitPlane();
+    void ReadBMP(const fs::path &imagePath);
+    void WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
+    void ExtractBitPlane(int bitNums);
 
 private:
     int width{0};
     int height{0};
-    
-    std::vector<uint8_t> imageBinary;
+    std::string originalImageName;
+
     std::vector<uint8_t> palette;
+    std::vector<uint8_t> imageBinary;
+    std::vector<uint8_t> imagePlane;
 
     BMPFileHeader headerBMP;
     BMPInfo infoBMP;
