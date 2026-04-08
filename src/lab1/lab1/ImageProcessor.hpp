@@ -43,20 +43,27 @@ public:
 
     void ReadBMP(const fs::path &imagePath);
     void WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
-    void ExtractBitPlane(int bitNums);
+    void ReadTXT(const fs::path &txtPath);
+    void ExtractBitPlane(int bitNum);
+    void EmbedTextIntoBitPlane(int bitNum);
 
 private:
-    int width{0};
-    int height{0};
+    int width{512};
+    int height{512};
+
+    size_t minSizeMessage{30720};
+    // size_t maxSizeMessage{32764};
+
     std::string originalImageName;
-
     fs::path originalImageDir;
-    fs::path resultDir = fs::path(PROJECT_ROOT) / "result";
-    fs::path messageDir = fs::path(PROJECT_ROOT) / "message";
+    fs::path resultDir = fs::path(PROJECT_ROOT).concat("/result");
+    // fs::path txtPath = fs::path(PROJECT_ROOT) / "message/";
 
-    std::vector<uint8_t> palette;
+    std::vector<uint32_t> palette;
     std::vector<uint8_t> imageBinary;
     std::vector<uint8_t> imagePlane;
+    std::vector<uint8_t> imageEmbed;
+    std::vector<uint8_t> privateMessage;
 
     BMPFileHeader headerBMP;
     BMPInfo infoBMP;

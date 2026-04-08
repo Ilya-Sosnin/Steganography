@@ -6,12 +6,19 @@ int main()
 {
     std::unique_ptr<ImageProcessor> imgProc;
     imgProc = std::make_unique<ImageProcessor>();
-    fs::path pathDatasets = fs::path(PROJECT_ROOT) / "datasets/2/1.bmp";
 
+    fs::path pathDatasets = fs::path(PROJECT_ROOT).concat("/datasets/2/1.bmp");
+    fs::path pathMessage = fs::path(PROJECT_ROOT).concat("/message/private_message.txt");
+    
     imgProc->ReadBMP(pathDatasets);
 
+     for(size_t i = 1; i <= 8; ++i)
+         imgProc->ExtractBitPlane(i);
+
+    imgProc->ReadTXT(pathMessage);
+
     for(size_t i = 1; i <= 8; ++i)
-        imgProc->ExtractBitPlane(i);
+       imgProc->EmbedTextIntoBitPlane(i);
 
     imgProc.reset();
 }

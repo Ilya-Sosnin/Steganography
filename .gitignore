@@ -68,6 +68,10 @@ vcpkg_installed/
 Testing/
 .cache/
 
+# vs code
+.vs/
+
 # users
 datasets/
 result/
+message/ 
