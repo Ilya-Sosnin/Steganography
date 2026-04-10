@@ -44,8 +44,10 @@ public:
     void ReadBMP(const fs::path &imagePath);
     void WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
     void ReadTXT(const fs::path &txtPath);
+    void WriteTxt(const std::string txtName, std::vector<uint8_t> &v);
     void ExtractBitPlane(int bitNum);
     void EmbedTextIntoBitPlane(int bitNum);
+    void ExtractMessage(int bitNum);
 
 private:
     int width{512};
@@ -64,6 +66,7 @@ private:
     std::vector<uint8_t> imagePlane;
     std::vector<uint8_t> imageEmbed;
     std::vector<uint8_t> privateMessage;
+    std::vector<uint8_t> extractedMessage;
 
     BMPFileHeader headerBMP;
     BMPInfo infoBMP;

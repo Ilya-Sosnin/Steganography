@@ -1,5 +1,6 @@
 #include "ImageProcessor.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <bitset>
 #include <filesystem>
@@ -96,6 +97,32 @@ void ImageProcessor::ReadTXT(const fs::path &txtPath)
     file.close();
 }
 
+void ImageProcessor::WriteTxt(const std::string txtName, std::vector<uint8_t> &v)
+{
+    fs::path outDir = resultDir / originalImageDir;
+
+    if (!fs::exists(outDir))
+        fs::create_directories(outDir);
+
+    fs::path outFile = outDir / txtName;
+    std::ofstream file(outFile, std::ios::binary);
+    if (!file)
+    {
+        std::cout << "Error: Cannot open file " << outFile << std::endl;
+        return;
+    }
+
+    if (v.size() <= 0)
+    {
+        std::cout << "Error: Size of extracted message  " << v.size() << std::endl;
+        return;
+    }
+
+    file.write(reinterpret_cast<char *>(v.data()), v.size() * sizeof(uint8_t));
+
+    file.close();
+}
+
 void ImageProcessor::ExtractBitPlane(int bitNum)
 {
     if (bitNum < 1 || bitNum > 8)
@@ -105,6 +132,7 @@ void ImageProcessor::ExtractBitPlane(int bitNum)
     }
 
     bitNum -= 1;
+
     imagePlane.resize(width * height);
 
     for (size_t i = 0; i < imageBinary.size(); ++i)
@@ -127,6 +155,7 @@ void ImageProcessor::EmbedTextIntoBitPlane(int bitNum)
     }
 
     bitNum -= 1;
+
     size_t byteImage = 0;
     size_t sizeWrittenMessage = 0;
     imageEmbed = imageBinary;
@@ -136,7 +165,7 @@ void ImageProcessor::EmbedTextIntoBitPlane(int bitNum)
         if (byteImage >= imageEmbed.size())
             break;
 
-        for (int i = 0; i < 8; ++i)
+        for (int i = 7; i >= 0; --i)
         {
             int bitMessage = (byteMessage >> i) & 1;
             imageEmbed[byteImage] &= ~(1 << bitNum);
@@ -153,4 +182,37 @@ void ImageProcessor::EmbedTextIntoBitPlane(int bitNum)
     std::string imageName = originalImageName + "_embed_bit_" +
                             std::to_string(bitNum) + ".bmp";
     WriteBMP(imageName, imageEmbed);
+}
+
+void ImageProcessor::ExtractMessage(int bitNum)
+{
+    if (bitNum < 1 || bitNum > 8)
+    {
+        std::cout << "Warning: Bit position must be between 1 and 8" << std::endl;
+        return;
+    }
+
+    bitNum -= 1;
+
+    uint8_t ch = 0;
+    size_t count = 0;
+
+    for (auto byte : imageEmbed)
+    {
+        int bit = (byte >> bitNum) & 1;
+        ch = (ch << 1) | bit;
+        count++;
+
+        if (count == 8)
+        {
+            extractedMessage.push_back(ch);
+            ch = 0;
+            count = 0;
+        }
+    }
+
+    std::string txtName = originalImageName + "_extract_message_bit_" +
+                          std::to_string(bitNum) + ".txt";
+
+    WriteTxt(txtName, extractedMessage);
 }
