@@ -5,27 +5,72 @@
 #include <bitset>
 #include <filesystem>
 
-ImageProcessor::ImageProcessor() {}
+ImageProcessor::ImageProcessor(int bitNumber, fs::path originalImageFile,
+                               fs::path messageFile, fs::path resultDir)
+    : bitNumber(bitNumber), originalImageFile(originalImageFile),
+      messageFile(messageFile), resultDir(resultDir) {}
 
 ImageProcessor::~ImageProcessor() {}
 
-void ImageProcessor::ReadBMP(const fs::path &imagePath)
+void ImageProcessor::ProcessorImage()
 {
-    if (!fs::exists(imagePath))
+    auto originalImageBinary = ReadBMP(originalImageFile);
+
+    std::cout << "From " << originalImageFile << " read "
+              << originalImageBinary.size() * 8 << " bits\n";
+
+    auto extractedBitPlane = ExtractBitPlane(originalImageBinary);
+
+    auto bitPlaneFile = WriteBMP(
+        originalImageName + "_plane_bit_" + std::to_string(bitNumber) + ".bmp",
+        extractedBitPlane);
+
+    std::cout << "Bit plane written to " << bitPlaneFile.filename() << "\n";
+
+    auto privateMessage = ReadTXT();
+
+    std::cout << "From " << messageFile.filename() << " read "
+              << privateMessage.size() * 8 << " bits\n";
+
+    auto [writtenBits, embededTextBitPlane] =
+        EmbedTextIntoBitPlane(originalImageBinary, privateMessage);
+
+    auto embedFile = WriteBMP(
+        originalImageName + "_embed_bit_" + std::to_string(bitNumber) + ".bmp",
+        embededTextBitPlane);
+
+    std::cout << "Embedded image written to " << embedFile.filename() << "\n";
+
+    auto extractedMessage = ExtractMessage(embededTextBitPlane);
+
+    std::cout << "Extracted message size "
+              << extractedMessage.size() * 8 << " bits\n";
+
+    auto outTxtFile = WriteTxt(
+        originalImageName + "_extract_message_bit_" + std::to_string(bitNumber) + ".txt",
+        extractedMessage);
+
+    std::cout << "Extract message written to " << outTxtFile.filename() << "\n";
+}
+
+std::vector<uint8_t> ImageProcessor::ReadBMP(const fs::path &imageFile)
+{
+    if (!fs::exists(imageFile))
     {
-        std::cout << "Error: File " << imagePath << " does not exist" << std::endl;
-        return;
+        std::cout << "Error: File " << imageFile << " does not exist\n";
+        return {};
     }
 
-    std::ifstream file(imagePath, std::ios_base::binary);
+    std::ifstream file(imageFile, std::ios_base::binary);
     if (!file.is_open())
     {
-        std::cout << "Error: Cannot open file " << imagePath << std::endl;
-        return;
+        std::cout << "Error: Cannot open file " << imageFile << "\n";
+        return {};
     }
 
-    originalImageName = imagePath.stem().string();
-    originalImageDir = imagePath.parent_path().filename();
+    std::vector<uint8_t> imageBinary;
+    originalImageName = imageFile.stem().string();
+    originalImageDir = imageFile.parent_path().filename();
 
     file.read(reinterpret_cast<char *>(&headerBMP), sizeof(headerBMP));
     file.read(reinterpret_cast<char *>(&infoBMP), sizeof(infoBMP));
@@ -42,9 +87,11 @@ void ImageProcessor::ReadBMP(const fs::path &imagePath)
     file.read(reinterpret_cast<char *>(imageBinary.data()), imageBinary.size());
 
     file.close();
+
+    return imageBinary;
 }
 
-void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> &v)
+fs::path ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> &v)
 {
     fs::path outDir = resultDir / originalImageDir;
 
@@ -56,8 +103,8 @@ void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> 
     std::ofstream file(outFile, std::ios_base::binary);
     if (!file.is_open())
     {
-        std::cout << "Error: Cannot open file " << outFile << std::endl;
-        return;
+        std::cout << "Error: Cannot open file " << outFile << "\n";
+        return {};
     }
 
     file.write(reinterpret_cast<char *>(&headerBMP), sizeof(headerBMP));
@@ -66,38 +113,44 @@ void ImageProcessor::WriteBMP(const std::string imageName, std::vector<uint8_t> 
     file.write(reinterpret_cast<char *>(v.data()), v.size());
 
     file.close();
+
+    return outFile;
 }
 
-void ImageProcessor::ReadTXT(const fs::path &txtPath)
+std::vector<uint8_t> ImageProcessor::ReadTXT()
 {
-    if (!fs::exists(txtPath))
+    if (!fs::exists(messageFile))
     {
-        std::cout << "Error: File " << txtPath << " does not exist" << std::endl;
-        return;
+        std::cout << "Error: File " << messageFile << " does not exist\n";
+        return {};
     }
 
-    uintmax_t size = fs::file_size(txtPath);
+    uintmax_t size = fs::file_size(messageFile);
     if (size < minSizeMessage)
     {
         std::cout << "Error: The message must be at least 30 bytes. Current size: "
-                  << size << " bytes" << std::endl;
-        return;
+                  << size << " bytes\n";
+        return {};
     }
 
-    std::ifstream file(txtPath, std::ios::binary);
+    std::vector<uint8_t> privateMessage;
+
+    std::ifstream file(messageFile, std::ios::binary);
     if (!file)
     {
-        std::cout << "Error: Cannot open file " << txtPath << std::endl;
-        return;
+        std::cout << "Error: Cannot open file " << messageFile << "\n";
+        return {};
     }
 
     privateMessage.resize(size);
 
     file.read(reinterpret_cast<char *>(privateMessage.data()), size);
     file.close();
+
+    return privateMessage;
 }
 
-void ImageProcessor::WriteTxt(const std::string txtName, std::vector<uint8_t> &v)
+fs::path ImageProcessor::WriteTxt(const std::string txtName, std::vector<uint8_t> &v)
 {
     fs::path outDir = resultDir / originalImageDir;
 
@@ -108,98 +161,66 @@ void ImageProcessor::WriteTxt(const std::string txtName, std::vector<uint8_t> &v
     std::ofstream file(outFile, std::ios::binary);
     if (!file)
     {
-        std::cout << "Error: Cannot open file " << outFile << std::endl;
-        return;
+        std::cout << "Error: Cannot open file " << outFile << "\n";
+        return {};
     }
 
     if (v.size() <= 0)
     {
-        std::cout << "Error: Size of extracted message  " << v.size() << std::endl;
-        return;
+        std::cout << "Error: Size of extracted message  " << v.size() << "\n";
+        return {};
     }
 
     file.write(reinterpret_cast<char *>(v.data()), v.size() * sizeof(uint8_t));
-
     file.close();
+
+    return outFile;
 }
 
-void ImageProcessor::ExtractBitPlane(int bitNum)
+std::vector<uint8_t> ImageProcessor::ExtractBitPlane(std::vector<uint8_t> imageBinary)
 {
-    if (bitNum < 1 || bitNum > 8)
-    {
-        std::cout << "Warning: Bit position must be between 1 and 8" << std::endl;
-        return;
-    }
-
-    bitNum -= 1;
-
+    std::vector<uint8_t> imagePlane;
     imagePlane.resize(width * height);
 
     for (size_t i = 0; i < imageBinary.size(); ++i)
     {
-        int bit = (imageBinary[i] >> (bitNum)) & 1;
+        int bit = (imageBinary[i] >> (bitNumber - 1)) & 1;
         imagePlane[i] = bit ? 255 : 0;
     }
-
-    std::string imageName = originalImageName + "_plane_bit_" +
-                            std::to_string(bitNum) + ".bmp";
-    WriteBMP(imageName, imagePlane);
+    return imagePlane;
 }
 
-void ImageProcessor::EmbedTextIntoBitPlane(int bitNum)
+std::pair<size_t, std::vector<uint8_t>> ImageProcessor::EmbedTextIntoBitPlane(std::vector<uint8_t> imageBinary, std::vector<uint8_t> privateMessage)
 {
-    if (bitNum < 1 || bitNum > 8)
-    {
-        std::cout << "Warning: Bit position must be between 1 and 8" << std::endl;
-        return;
-    }
-
-    bitNum -= 1;
-
     size_t byteImage = 0;
     size_t sizeWrittenMessage = 0;
-    imageEmbed = imageBinary;
 
     for (auto byteMessage : privateMessage)
     {
-        if (byteImage >= imageEmbed.size())
+        if (byteImage >= imageBinary.size())
             break;
 
         for (int i = 7; i >= 0; --i)
         {
             int bitMessage = (byteMessage >> i) & 1;
-            imageEmbed[byteImage] &= ~(1 << bitNum);
-            imageEmbed[byteImage] |= (bitMessage << bitNum);
+            imageBinary[byteImage] &= ~(1 << (bitNumber - 1));
+            imageBinary[byteImage] |= (bitMessage << (bitNumber - 1));
             byteImage++;
         }
         sizeWrittenMessage++;
     }
-
-    std::cout << sizeWrittenMessage * 8
-              << " of " << privateMessage.size() * 8
-              << " bits written" << std::endl;
-
-    std::string imageName = originalImageName + "_embed_bit_" +
-                            std::to_string(bitNum) + ".bmp";
-    WriteBMP(imageName, imageEmbed);
+    return {sizeWrittenMessage, imageBinary};
 }
 
-void ImageProcessor::ExtractMessage(int bitNum)
+std::vector<uint8_t> ImageProcessor::ExtractMessage(std::vector<uint8_t> embedImageBinary)
 {
-    if (bitNum < 1 || bitNum > 8)
-    {
-        std::cout << "Warning: Bit position must be between 1 and 8" << std::endl;
-        return;
-    }
-
-    bitNum -= 1;
-
     uint8_t ch = 0;
     size_t count = 0;
+    std::vector<uint8_t> extractedMessage;
 
-    for (auto byte : imageEmbed)
+    for (auto byte : embedImageBinary)
     {
-        int bit = (byte >> bitNum) & 1;
+        int bit = (byte >> (bitNumber - 1)) & 1;
         ch = (ch << 1) | bit;
         count++;
 
@@ -210,9 +231,5 @@ void ImageProcessor::ExtractMessage(int bitNum)
             count = 0;
         }
     }
-
-    std::string txtName = originalImageName + "_extract_message_bit_" +
-                          std::to_string(bitNum) + ".txt";
-
-    WriteTxt(txtName, extractedMessage);
+    return extractedMessage;
 }

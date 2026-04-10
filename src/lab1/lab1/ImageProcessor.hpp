@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <utility>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -38,38 +39,37 @@ struct BMPInfo
 class ImageProcessor
 {
 public:
-    ImageProcessor();
+    ImageProcessor(int bitNumber, fs::path originalImageFile, fs::path messageFile, fs::path resultDir);
     ~ImageProcessor();
 
-    void ReadBMP(const fs::path &imagePath);
-    void WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
-    void ReadTXT(const fs::path &txtPath);
-    void WriteTxt(const std::string txtName, std::vector<uint8_t> &v);
-    void ExtractBitPlane(int bitNum);
-    void EmbedTextIntoBitPlane(int bitNum);
-    void ExtractMessage(int bitNum);
+    void ProcessorImage();
 
 private:
+    int bitNumber{0};
     int width{512};
     int height{512};
 
     size_t minSizeMessage{30720};
-    // size_t maxSizeMessage{32764};
 
     std::string originalImageName;
     fs::path originalImageDir;
-    fs::path resultDir = fs::path(PROJECT_ROOT).concat("/result");
-    // fs::path txtPath = fs::path(PROJECT_ROOT) / "message/";
+
+    fs::path originalImageFile;
+    fs::path messageFile;
+    fs::path resultDir;
 
     std::vector<uint32_t> palette;
-    std::vector<uint8_t> imageBinary;
-    std::vector<uint8_t> imagePlane;
-    std::vector<uint8_t> imageEmbed;
-    std::vector<uint8_t> privateMessage;
-    std::vector<uint8_t> extractedMessage;
 
     BMPFileHeader headerBMP;
     BMPInfo infoBMP;
+
+    std::vector<uint8_t> ReadBMP(const fs::path &imageFile);
+    fs::path WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
+    std::vector<uint8_t> ReadTXT();
+    fs::path WriteTxt(const std::string txtName, std::vector<uint8_t> &v);
+    std::vector<uint8_t> ExtractBitPlane(std::vector<uint8_t> imageBinary);
+    std::pair<size_t, std::vector<uint8_t>> EmbedTextIntoBitPlane(std::vector<uint8_t> binaryImage, std::vector<uint8_t> privateMessage);
+    std::vector<uint8_t> ExtractMessage(std::vector<uint8_t> embedImageBinary);
 };
 
 #endif
