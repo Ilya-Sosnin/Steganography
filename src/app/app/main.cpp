@@ -1,6 +1,6 @@
 #include "CLI/CLI.hpp"
 
-#include "lab1/ContainerProcessor.hpp"
+#include "steganography/ContainerProcessor.hpp"
 
 int main(int argc, char *argv[]) {
 

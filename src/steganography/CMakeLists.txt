@@ -1,8 +1,8 @@
 set(target_name ContainerProcessor)
 
 add_library(${target_name} STATIC
-  lab1/ContainerProcessor.cpp
-  lab1/ContainerProcessor.hpp)
+  steganography/ContainerProcessor.cpp
+  steganography/ContainerProcessor.hpp)
 
 target_include_directories(
   ${target_name} PUBLIC
