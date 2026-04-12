@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]) {
   // if (argc != 4) {
   //   std::cout << "Usage: "
-  //             << "./app.exe <bit position> <path to image> <path to message>\n";
+  //             << "./app.exe -<flag options> <path to image> <path to message>\n";
 
   //   std::cout << "Files must be located relative to the program root!\n";
 
@@ -52,15 +52,4 @@ int main(int argc, char *argv[]) {
   //                                            resultDir);
   // imgProc->ProcessorImage();
   // imgProc.reset();
-
-
-  fs::path img = fs::path("D:/Magistracy/Steganography/datasets/2/2.bmp");
-  
-  ImageIO image;
-
-  vector<uint8_t> v = image.loadImage(img);
-  if(!image.saveImage(fs::path("output1.bmp"), v))
-    cout << "Error saved file\n";
-
-  // image.loadImage(img);
 }

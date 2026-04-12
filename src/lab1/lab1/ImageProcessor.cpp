@@ -5,124 +5,85 @@
 #include <filesystem>
 #include <fstream>
 
-ImageProcessor::ImageProcessor(int bitNumber, fs::path originalImageFile,
-                               fs::path messageFile, fs::path resultDir)
-    : bitNumber(bitNumber), originalImageFile(originalImageFile),
-      messageFile(messageFile), resultDir(resultDir) {}
+ImageProcessor::ImageProcessor() {}
 
 ImageProcessor::~ImageProcessor() {}
 
-void ImageProcessor::ProcessorImage() {
-  // auto originalImageBinary = ReadBMP(originalImageFile);
+void ImageProcessor::ExtBitPlane(int bitNumber, const fs::path &pathImage) {
+  vector<uint8_t> pixels = imgIO.Read(pathImage);
+  if (pixels.empty())
+    return;
 
-  // std::cout << "From " << originalImageFile << " read "
-  //           << originalImageBinary.size() * 8 << " bits\n";
+  vector<uint8_t> bitPlane = ExtractBitPlane(bitNumber, pixels);
+  if (bitPlane.empty())
+    return;
 
-  // auto extractedBitPlane = ExtractBitPlane(originalImageBinary);
-
-  // auto bitPlaneFile = WriteBMP(originalImageName + "_plane_bit_" +
-  //                                  std::to_string(bitNumber) + ".bmp",
-  //                              extractedBitPlane);
-
-  // std::cout << "Bit plane written to " << bitPlaneFile.filename() << "\n";
-
-  // auto privateMessage = ReadTXT();
-
-  // std::cout << "From " << messageFile.filename() << " read "
-  //           << privateMessage.size() * 8 << " bits\n";
-
-  // auto [writtenBits, embededTextBitPlane] =
-  //     EmbedTextIntoBitPlane(originalImageBinary, privateMessage);
-
-  // auto embedFile = WriteBMP(originalImageName + "_embed_bit_" +
-  //                               std::to_string(bitNumber) + ".bmp",
-  //                           embededTextBitPlane);
-
-  // std::cout << "Embedded image written to " << embedFile.filename() << "\n";
-
-  // auto extractedMessage = ExtractMessage(embededTextBitPlane);
-
-  // std::cout << "Extracted message size " << extractedMessage.size() * 8
-  //           << " bits\n";
-
-  // auto outTxtFile = WriteTxt(originalImageName + "_extract_message_bit_" +
-  //                                std::to_string(bitNumber) + ".txt",
-  //                            extractedMessage);
-
-  // std::cout << "Extract message written to " << outTxtFile.filename() <<
-  // "\n";
+  fs::path outImageName = "ext_plane_bit_num_" + to_string(bitNumber) + ".bmp";
+  if (!imgIO.Write(outImageName, bitPlane))
+    return;
 }
 
-// std::vector<uint8_t> ImageProcessor::ReadTXT() {
-//   if (!fs::exists(messageFile)) {
-//     std::cout << "Error: File " << messageFile << " does not exist\n";
-//     return {};
-//   }
+void ImageProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
+                                   const fs::path &pathMessage) {
+  vector<uint8_t> pixels = imgIO.Read(pathImage);
+  if (pixels.empty())
+    return;
 
-//   uintmax_t size = fs::file_size(messageFile);
-//   if (size < minSizeMessage) {
-//     std::cout << "Error: The message must be at least 30 bytes. Current size:
-//     "
-//               << size << " bytes\n";
-//     return {};
-//   }
+  vector<uint8_t> message = txtIO.Read(pathMessage);
+  if (message.empty())
+    return;
 
-//   std::vector<uint8_t> privateMessage;
+  auto [sizeWriteMess, embedMessPixels] =
+      EmbedTextIntoBitPlane(bitNumber, pixels, message);
 
-//   std::ifstream file(messageFile, std::ios::binary);
-//   if (!file) {
-//     std::cout << "Error: Cannot open file " << messageFile << "\n";
-//     return {};
-//   }
+  if (sizeWriteMess == 0 || embedMessPixels.empty()) {
+    cout << "Embedding failed\n";
+    return;
+  }
 
-//   privateMessage.resize(size);
+  cout << "The image " << sizeWriteMess * 8 << " bits out of "
+       << message.size() * 8 << "\n";
 
-//   file.read(reinterpret_cast<char *>(privateMessage.data()), size);
-//   file.close();
+  fs::path outImageName = "embed_bit_num_" + to_string(bitNumber) + ".bmp";
+  if (!imgIO.Write(outImageName, embedMessPixels))
+    return;
+}
 
-//   return privateMessage;
-// }
+void ImageProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
+  vector<uint8_t> pixels = imgIO.Read(pathImage);
+  if (pixels.empty())
+    return;
 
-// fs::path ImageProcessor::WriteTxt(const std::string txtName,
-//                                   std::vector<uint8_t> &v) {
-//   fs::path outDir = resultDir / originalImageDir;
+  vector<uint8_t> message = ExtractMessage(bitNumber, pixels);
+  if (message.empty())
+    return;
 
-//   if (!fs::exists(outDir))
-//     fs::create_directories(outDir);
+  fs::path resultsDir = fs::path(PROJECT_ROOT) / "results";
+  fs::create_directories(resultsDir);
 
-//   fs::path outFile = outDir / txtName;
-//   std::ofstream file(outFile, std::ios::binary);
-//   if (!file) {
-//     std::cout << "Error: Cannot open file " << outFile << "\n";
-//     return {};
-//   }
+  fs::path outTextFile = resultsDir / ("extract_message_bit_" +
+                                       std::to_string(bitNumber) + ".txt");
 
-//   if (v.size() <= 0) {
-//     std::cout << "Error: Size of extracted message  " << v.size() << "\n";
-//     return {};
-//   }
+  if (!txtIO.Write(outTextFile, message))
+    return;
+}
 
-//   file.write(reinterpret_cast<char *>(v.data()), v.size() * sizeof(uint8_t));
-//   file.close();
-
-//   return outFile;
-// }
-
-std::vector<uint8_t>
-ImageProcessor::ExtractBitPlane(std::vector<uint8_t> imageBinary) {
-  std::vector<uint8_t> imagePlane;
-  imagePlane.resize(width * height);
+vector<uint8_t> ImageProcessor::ExtractBitPlane(int bitNumber,
+                                                vector<uint8_t> imageBinary) {
+  vector<uint8_t> imagePlane;
+  imagePlane.resize(WIDTH * HEIGHT);
 
   for (size_t i = 0; i < imageBinary.size(); ++i) {
-    int bit = (imageBinary[i] >> (bitNumber - 1)) & 1;
+    int bit = (imageBinary[i] >> (bitNumber -1)) & 1;
     imagePlane[i] = bit ? 255 : 0;
   }
   return imagePlane;
 }
 
-std::pair<size_t, std::vector<uint8_t>>
-ImageProcessor::EmbedTextIntoBitPlane(std::vector<uint8_t> imageBinary,
-                                      std::vector<uint8_t> privateMessage) {
+pair<size_t, vector<uint8_t>>
+ImageProcessor::EmbedTextIntoBitPlane(int bitNumber,
+                                      vector<uint8_t> imageBinary,
+                                      vector<uint8_t> privateMessage) {
   size_t byteImage = 0;
   size_t sizeWrittenMessage = 0;
 
@@ -141,12 +102,12 @@ ImageProcessor::EmbedTextIntoBitPlane(std::vector<uint8_t> imageBinary,
   return {sizeWrittenMessage, imageBinary};
 }
 
-std::vector<uint8_t>
-
-ImageProcessor::ExtractMessage(std::vector<uint8_t> embedImageBinary) {
+vector<uint8_t>
+ImageProcessor::ExtractMessage(int bitNumber,
+                               vector<uint8_t> embedImageBinary) {
   uint8_t ch = 0;
   size_t count = 0;
-  std::vector<uint8_t> extractedMessage;
+  vector<uint8_t> extractedMessage;
 
   for (auto byte : embedImageBinary) {
     int bit = (byte >> (bitNumber - 1)) & 1;
@@ -166,9 +127,10 @@ ImageIO::ImageIO() {}
 
 ImageIO::~ImageIO() {}
 
-vector<uint8_t> ImageIO::loadImage(const fs::path &imagePath) {
+vector<uint8_t> ImageIO::Read(const fs::path &imagePath) {
 
   inputImagePath = imagePath;
+  originalImageName = inputImagePath.filename().stem().string();
 
   if (!ReadBMP())
     return {};
@@ -182,7 +144,7 @@ vector<uint8_t> ImageIO::loadImage(const fs::path &imagePath) {
   return pixels;
 }
 
-bool ImageIO::saveImage(const fs::path &fileName, vector<uint8_t> &v) {
+bool ImageIO::Write(const fs::path &fileName, vector<uint8_t> &v) {
   if (fileName.extension().empty() ||
       (fileName.extension() != ".bmp" && fileName.extension() != ".BMP")) {
     cout << "Error: File name contains an invalid or empty extension\n";
@@ -191,7 +153,9 @@ bool ImageIO::saveImage(const fs::path &fileName, vector<uint8_t> &v) {
 
   MakeOutputDir();
 
-  fs::path outputImagePath = outputImageDir / fileName;
+  fs::path outputImageName =
+      originalImageName.string() + "_" + fileName.string();
+  fs::path outputImagePath = outputImageDir / outputImageName;
 
   if (!ValidateOutputBMP(outputImagePath, v))
     return false;
@@ -204,30 +168,29 @@ bool ImageIO::saveImage(const fs::path &fileName, vector<uint8_t> &v) {
 
 bool ImageIO::ReadBMP() {
   if (!fs::exists(inputImagePath)) {
-    std::cout << "Error: File " << inputImagePath << " does not exist\n";
+    cout << "Error: File " << inputImagePath << " does not exist\n";
     return false;
   }
 
-  std::ifstream file(inputImagePath, ios_base::binary);
+  ifstream file(inputImagePath, ios_base::binary);
   if (!file.is_open()) {
-    std::cout << "Error: Cannot open file " << inputImagePath << "\n";
+    cout << "Error: Cannot open file " << inputImagePath << "\n";
     return false;
   }
 
   file.seekg(0, ios_base::end);
   size_t sizeFile = static_cast<size_t>(file.tellg());
-  file.seekg(0, std::ios::beg);
+  file.seekg(0, ios::beg);
 
   if (sizeFile <= 0) {
-    std::cout << "Error: File " << inputImagePath.filename() << " is empty\n";
+    cout << "Error: File " << inputImagePath.filename() << " is empty\n";
     return false;
   }
 
   binaryImage.resize(sizeFile);
 
   if (!file.read(reinterpret_cast<char *>(binaryImage.data()), sizeFile)) {
-    std::cout << "Error: Failed to read file " << inputImagePath.filename()
-              << "\n";
+    cout << "Error: Failed to read file " << inputImagePath.filename() << "\n";
     return false;
   }
 
@@ -238,14 +201,14 @@ bool ImageIO::ReadBMP() {
 
 bool ImageIO::ValidateInputBMP() {
   if (binaryImage.size() < BMP_HEADER_SIZE) {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " too is too small in size\n";
+    cout << "Error: File " << inputImagePath.filename()
+         << " too is too small in size\n";
     return false;
   }
 
   if (binaryImage[0] != 'B' || binaryImage[1] != 'M') {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " is not in BMP format\n";
+    cout << "Error: File " << inputImagePath.filename()
+         << " is not in BMP format\n";
     return false;
   }
   uint32_t width, height;
@@ -256,16 +219,16 @@ bool ImageIO::ValidateInputBMP() {
   memcpy(&bitCount, &binaryImage[28], sizeof(uint16_t));
 
   if (width != 512 || height != 512) {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " has an incorrect resolution - " << width << "x" << height
-              << ". Expected 512x512\n";
+    cout << "Error: File " << inputImagePath.filename()
+         << " has an incorrect resolution - " << width << "x" << height
+         << ". Expected 512x512\n";
     return false;
   }
 
   if (bitCount != 8) {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " has an incorrect number of bits per pixel - " << bitCount
-              << ". Expected 8\n";
+    cout << "Error: File " << inputImagePath.filename()
+         << " has an incorrect number of bits per pixel - " << bitCount
+         << ". Expected 8\n";
     return false;
   }
 
@@ -274,8 +237,8 @@ bool ImageIO::ValidateInputBMP() {
 
 bool ImageIO::ParseBMP() {
   if (binaryImage.size() < BMP_HEADER_SIZE) {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " too is too small in size\n";
+    cout << "Error: File " << inputImagePath.filename()
+         << " too is too small in size\n";
     return false;
   }
 
@@ -292,8 +255,7 @@ bool ImageIO::ParseBMP() {
 
   if (startPalette > binaryImage.size() || startPixels > binaryImage.size() ||
       startPalette > startPixels) {
-    std::cout << "Error: File " << inputImagePath.filename()
-              << " is corrupted\n";
+    cout << "Error: File " << inputImagePath.filename() << " is corrupted\n";
     return false;
   }
 
@@ -380,6 +342,66 @@ bool ImageIO::WriteBMP(const fs::path &outputImagePath, vector<uint8_t> &v) {
   if (!file.write(reinterpret_cast<char *>(v.data()),
                   v.size() * sizeof(uint8_t))) {
     cout << "Error: Failed to write pixel to file " << outputImagePath << "\n";
+    return false;
+  }
+
+  file.close();
+
+  return true;
+}
+
+TextIO::TextIO() {}
+
+TextIO::~TextIO() {}
+
+vector<uint8_t> TextIO::Read(const fs::path &inputTextFile) {
+  if (!fs::exists(inputTextFile)) {
+    cout << "Error: File " << inputTextFile << " does not exist\n";
+    return {};
+  }
+
+  uintmax_t size = fs::file_size(inputTextFile);
+  if (size < MIN_TEXT_SIZE) {
+    cout << "Error: The message must be at least 30 bytes. Current size: "
+         << size << " bytes\n";
+    return {};
+  }
+
+  vector<uint8_t> privateMessage;
+
+  ifstream file(inputTextFile, ios::binary);
+  if (!file) {
+    cout << "Error: Cannot open file " << inputTextFile << "\n";
+    return {};
+  }
+
+  privateMessage.resize(size);
+
+  if (!file.read(reinterpret_cast<char *>(privateMessage.data()), size)) {
+    cout << "Error: Failed to read file " << inputTextFile << "\n";
+    return {};
+  }
+
+  file.close();
+
+  return privateMessage;
+}
+
+bool TextIO::Write(const fs::path &outTextFile, vector<uint8_t> &v) {
+  ofstream file(outTextFile, ios::binary);
+  if (!file) {
+    cout << "Error: Cannot open file " << outTextFile << "\n";
+    return false;
+  }
+
+  if (v.empty()) {
+    cout << "Error: Extracted message is empty\n";
+    return false;
+  }
+
+  if (!file.write(reinterpret_cast<char *>(v.data()),
+                  v.size() * sizeof(uint8_t))) {
+    cout << "Error: Failed to write pixel to file " << outTextFile << "\n";
     return false;
   }
 
