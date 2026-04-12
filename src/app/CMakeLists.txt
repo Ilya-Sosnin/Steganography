@@ -14,6 +14,7 @@ target_link_libraries(
   ${target_name}
   PRIVATE
   image_processor
+  CLI11
 )
 
 target_compile_definitions(
