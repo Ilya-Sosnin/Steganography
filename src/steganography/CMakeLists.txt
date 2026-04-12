@@ -2,7 +2,12 @@ set(target_name ContainerProcessor)
 
 add_library(${target_name} STATIC
   steganography/ContainerProcessor.cpp
-  steganography/ContainerProcessor.hpp)
+  steganography/ContainerProcessor.hpp
+  steganography/ImageIO.cpp
+  steganography/ImageIO.hpp
+  steganography/TextIO.cpp
+  steganography/TextIO.hpp
+  )
 
 target_include_directories(
   ${target_name} PUBLIC
