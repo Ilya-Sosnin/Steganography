@@ -1,5 +1,5 @@
-#ifndef IMAGEPROCESSOR_HPP
-#define IMAGEPROCESSOR_HPP
+#ifndef ContainerProcessor_HPP
+#define ContainerProcessor_HPP
 
 #include <cstdint>
 #include <filesystem>
@@ -78,10 +78,10 @@ private:
   static constexpr size_t MIN_TEXT_SIZE = 30720;
 };
 
-class ImageProcessor {
+class ContainerProcessor {
 public:
-  ImageProcessor();
-  ~ImageProcessor();
+  ContainerProcessor();
+  ~ContainerProcessor();
 
   void ExtBitPlane(int bitNumber, const fs::path &pathImage);
   void EmbeddingData(int bitNumber, const fs::path &pathImage,

@@ -1,15 +1,15 @@
-#include "ImageProcessor.hpp"
+#include "ContainerProcessor.hpp"
 
 #include <algorithm>
 #include <bitset>
 #include <filesystem>
 #include <fstream>
 
-ImageProcessor::ImageProcessor() {}
+ContainerProcessor::ContainerProcessor() {}
 
-ImageProcessor::~ImageProcessor() {}
+ContainerProcessor::~ContainerProcessor() {}
 
-void ImageProcessor::ExtBitPlane(int bitNumber, const fs::path &pathImage) {
+void ContainerProcessor::ExtBitPlane(int bitNumber, const fs::path &pathImage) {
   vector<uint8_t> pixels = imgIO.Read(pathImage);
   if (pixels.empty())
     return;
@@ -23,7 +23,7 @@ void ImageProcessor::ExtBitPlane(int bitNumber, const fs::path &pathImage) {
     return;
 }
 
-void ImageProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
+void ContainerProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
                                    const fs::path &pathMessage) {
   vector<uint8_t> pixels = imgIO.Read(pathImage);
   if (pixels.empty())
@@ -49,7 +49,7 @@ void ImageProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
     return;
 }
 
-void ImageProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
+void ContainerProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
   vector<uint8_t> pixels = imgIO.Read(pathImage);
   if (pixels.empty())
     return;
@@ -68,7 +68,7 @@ void ImageProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
     return;
 }
 
-vector<uint8_t> ImageProcessor::ExtractBitPlane(int bitNumber,
+vector<uint8_t> ContainerProcessor::ExtractBitPlane(int bitNumber,
                                                 vector<uint8_t> imageBinary) {
   vector<uint8_t> imagePlane;
   imagePlane.resize(WIDTH * HEIGHT);
@@ -81,7 +81,7 @@ vector<uint8_t> ImageProcessor::ExtractBitPlane(int bitNumber,
 }
 
 pair<size_t, vector<uint8_t>>
-ImageProcessor::EmbedTextIntoBitPlane(int bitNumber,
+ContainerProcessor::EmbedTextIntoBitPlane(int bitNumber,
                                       vector<uint8_t> imageBinary,
                                       vector<uint8_t> privateMessage) {
   size_t byteImage = 0;
@@ -103,7 +103,7 @@ ImageProcessor::EmbedTextIntoBitPlane(int bitNumber,
 }
 
 vector<uint8_t>
-ImageProcessor::ExtractMessage(int bitNumber,
+ContainerProcessor::ExtractMessage(int bitNumber,
                                vector<uint8_t> embedImageBinary) {
   uint8_t ch = 0;
   size_t count = 0;

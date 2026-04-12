@@ -1,6 +1,6 @@
 #include "CLI/CLI.hpp"
 
-#include "lab1/ImageProcessor.hpp"
+#include "lab1/ContainerProcessor.hpp"
 
 int main(int argc, char *argv[]) {
 
@@ -36,10 +36,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  ImageProcessor processor;
+  ContainerProcessor containerProc;
 
   if (mode == "plane") {
-    processor.ExtBitPlane(bitNumber, imagePath);
+    containerProc.ExtBitPlane(bitNumber, imagePath);
   } else if (mode == "embed") {
     if (!msgOpt->count()) {
       std::cout << "--message required for embed\n";
@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
       std::cout << "--message does not exist\n";
       return -1;
     }
-    processor.EmbeddingData(bitNumber, imagePath, messagePath);
+    containerProc.EmbeddingData(bitNumber, imagePath, messagePath);
   } else if (mode == "extract") {
-    processor.ExtMessage(bitNumber, imagePath);
+    containerProc.ExtMessage(bitNumber, imagePath);
   } else {
     cout << "Error: unknown mode\n";
     return -1;
