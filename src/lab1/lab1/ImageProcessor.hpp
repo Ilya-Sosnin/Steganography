@@ -8,10 +8,11 @@
 #include <utility>
 #include <vector>
 
+using namespace std;
 namespace fs = std::filesystem;
 
 #pragma pack(push, 1)
-struct BMPFileHeader {
+struct FileHeaderBMP {
   uint16_t bfType;
   uint32_t bfSize;
   uint16_t bfReserved1;
@@ -19,7 +20,7 @@ struct BMPFileHeader {
   uint32_t bfOffBits;
 };
 
-struct BMPInfo {
+struct InfoBMP {
   uint32_t biSize;
   uint32_t biWidth;
   uint32_t biHeight;
@@ -56,18 +57,10 @@ private:
   fs::path messageFile;
   fs::path resultDir;
 
-  std::vector<uint32_t> palette;
+  // std::vector<uint32_t> palette;
 
-  BMPFileHeader headerBMP;
-  BMPInfo infoBMP;
-
-  std::vector<uint8_t> ReadBMP(const fs::path &imageFile);
-
-  fs::path WriteBMP(const std::string imageName, std::vector<uint8_t> &v);
-
-  std::vector<uint8_t> ReadTXT();
-
-  fs::path WriteTxt(const std::string txtName, std::vector<uint8_t> &v);
+  // BMPFileHeader headerBMP;
+  // BMPInfo infoBMP;
 
   std::vector<uint8_t> ExtractBitPlane(std::vector<uint8_t> imageBinary);
 
@@ -76,6 +69,37 @@ private:
                         std::vector<uint8_t> privateMessage);
 
   std::vector<uint8_t> ExtractMessage(std::vector<uint8_t> embedImageBinary);
+};
+
+class ImageIO {
+public:
+  ImageIO();
+  ~ImageIO();
+
+  vector<uint8_t> loadImage(const fs::path &imageFile);
+  bool saveImage(const fs::path& imageName, vector<uint8_t> &v);
+
+private:
+  static constexpr size_t BMP_HEADER_SIZE = 54;
+
+  fs::path originalImageName;
+  fs::path inputImagePath;
+  fs::path outputImageDir;
+
+  vector<uint8_t> binaryImage;
+  vector<uint8_t> palette;
+  vector<uint8_t> pixels;
+
+  FileHeaderBMP headerBMP;
+  InfoBMP infoBMP;
+
+  bool ReadBMP();
+  bool ValidateInputBMP();
+  bool ParseBMP();
+
+  void MakeOutputDir();
+  bool ValidateOutputBMP(const fs::path& outputImagePath, vector<uint8_t> &v);
+  bool WriteBMP(const fs::path& outputImagePath, vector<uint8_t> &v);
 };
 
 #endif
