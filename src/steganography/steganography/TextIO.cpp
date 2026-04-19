@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 
-
 TextIO::TextIO() {}
 
 TextIO::~TextIO() {}
@@ -61,6 +60,8 @@ bool TextIO::Write(const fs::path &outTextFile, vector<uint8_t> &v) {
   }
 
   file.close();
+
+  std::cout << "Path to the resulting text file: " << outTextFile << "\n";
 
   return true;
 }

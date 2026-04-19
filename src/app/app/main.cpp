@@ -3,7 +3,6 @@
 #include "steganography/ContainerProcessor.hpp"
 
 int main(int argc, char *argv[]) {
-
   CLI::App app{};
 
   int bitNumber = 0;
@@ -16,7 +15,11 @@ int main(int argc, char *argv[]) {
   app.add_option("--image", image)->required();
   auto msgOpt = app.add_option("--message", message);
 
-  app.parse(argc, argv);
+  try {
+    app.parse(argc, argv);
+  } catch (const CLI::ParseError &e) {
+    return app.exit(e);
+  }
 
   if (bitNumber < 1 || bitNumber > 8) {
     std::cout << "--bit must be between 1 and 8\n";

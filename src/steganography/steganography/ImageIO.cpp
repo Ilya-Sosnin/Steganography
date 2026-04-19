@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-
 ImageIO::ImageIO() {}
 
 ImageIO::~ImageIO() {}
@@ -43,6 +42,8 @@ bool ImageIO::Write(const fs::path &fileName, vector<uint8_t> &v) {
 
   if (!WriteBMP(outputImagePath, v))
     return false;
+
+  std::cout << "Path to the resulting image: " << outputImagePath << "\n";
 
   return true;
 }

@@ -75,3 +75,4 @@ Testing/
 datasets/
 results/
 message/ 
+scripts/run_exe.py
