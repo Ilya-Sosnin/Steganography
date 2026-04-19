@@ -4,13 +4,6 @@ import cv2
 
 
 def image2bmp(path):
-    if not os.path.exists(path):
-        print("Error: Incorrect path")
-        sys.exit(1)
-
-    if not os.path.isdir(path):
-        print("Error: Path is not a directory")
-        sys.exit(1)
 
     files = os.listdir(path)
 
@@ -48,5 +41,13 @@ if __name__ == "__main__":
         sys.exit(1)
 
     path = sys.argv[1]
+
+    if not os.path.exists(path):
+        print("Error: Incorrect path")
+        sys.exit(1)
+
+    if not os.path.isdir(path):
+        print("Error: Path is not a directory")
+        sys.exit(1)
 
     image2bmp(path)
