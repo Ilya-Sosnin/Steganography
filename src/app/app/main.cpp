@@ -1,55 +1,65 @@
-#include <charconv>
-#include <string_view>
+#include "CLI/CLI.hpp"
 
-#include "lab1/ImageProcessor.hpp"
+#include "steganography/ContainerProcessor.hpp"
 
 int main(int argc, char *argv[]) {
-  if (argc != 4) {
-    std::cout << "Usage: "
-              << "./app.exe <bit position> <path to image> <path to message>\n";
+  CLI::App app{};
 
-    std::cout << "Files must be located relative to the program root!\n";
+  int bitNumber = 0;
+  string mode;
+  fs::path image;
+  fs::path message;
 
-    std::cout << "Example: "
-              << "./app.exe 1 /datasets/2/1.bmp /message/private_message.txt\n";
-    return 0;
-  }
+  app.add_option("--mode", mode)->required();
+  app.add_option("--bit", bitNumber)->required();
+  app.add_option("--image", image)->required();
+  auto msgOpt = app.add_option("--message", message);
 
-  std::string bitNum = argv[1];
-
-  int bitNumber;
-  auto [ptr, ec] =
-      std::from_chars(bitNum.data(), bitNum.data() + bitNum.size(), bitNumber);
-
-  if (ec != std::errc() || ptr != bitNum.data() + bitNum.size()) {
-    std::cout << "<bit_position> must be a number\n";
-    return 0;
+  try {
+    app.parse(argc, argv);
+  } catch (const CLI::ParseError &e) {
+    return app.exit(e);
   }
 
   if (bitNumber < 1 || bitNumber > 8) {
-    std::cout << "<bit_position> must be between 1 and 8\n";
-    return 0;
+    std::cout << "--bit must be between 1 and 8\n";
+    return -1;
   }
 
-  fs::path imageFile = fs::path(PROJECT_ROOT).concat(argv[2]);
-  if (!fs::exists(imageFile)) {
-    std::cout << "<path to image> = " << imageFile << " does not exist\n";
-    return 0;
+  fs::path imagePath = fs::path(PROJECT_ROOT) / image;
+  if (!fs::exists(imagePath)) {
+    std::cout << "--image does not exist\n";
+    return -1;
   }
 
-  fs::path messageFile = fs::path(PROJECT_ROOT).concat(argv[3]);
-  if (!fs::exists(messageFile)) {
-    std::cout << "<path to message> = " << messageFile << " does not exist\n";
-    return 0;
+  if (mode == "embed") {
+    if (!msgOpt->count()) {
+      std::cout << "---message required for embed\n";
+      return -1;
+    }
   }
 
-  fs::path resultDir = fs::path(PROJECT_ROOT).concat("/result");
-  if (!fs::exists(resultDir))
-    fs::create_directory(resultDir);
+  ContainerProcessor containerProc;
 
-  std::unique_ptr<ImageProcessor> imgProc;
-  imgProc = std::make_unique<ImageProcessor>(bitNumber, imageFile, messageFile,
-                                             resultDir);
-  imgProc->ProcessorImage();
-  imgProc.reset();
+  if (mode == "plane") {
+    containerProc.ExtBitPlane(bitNumber, imagePath);
+  } else if (mode == "embed") {
+    if (!msgOpt->count()) {
+      std::cout << "--message required for embed\n";
+      return -1;
+    }
+    fs::path messagePath = fs::path(PROJECT_ROOT) / message;
+    if (!fs::exists(messagePath)) {
+      std::cout << "--message does not exist\n";
+      return -1;
+    }
+    containerProc.EmbeddingData(bitNumber, imagePath, messagePath);
+  } else if (mode == "extract") {
+    containerProc.ExtMessage(bitNumber, imagePath);
+  } else {
+    cout << "Error: unknown mode\n";
+    return -1;
+  }
+
+  return 0;
 }

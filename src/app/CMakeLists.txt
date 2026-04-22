@@ -13,7 +13,8 @@ set_target_properties(
 target_link_libraries(
   ${target_name}
   PRIVATE
-  image_processor
+  ContainerProcessor
+  CLI11
 )
 
 target_compile_definitions(

@@ -73,5 +73,6 @@ Testing/
 
 # users
 datasets/
-result/
+results/
 message/ 
+scripts/run_exe.py
