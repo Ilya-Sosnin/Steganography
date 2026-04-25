@@ -1,4 +1,4 @@
-#include "ContainerProcessor.hpp"
+#include "ContainerProcessor/ContainerProcessor.hpp"
 
 #include <algorithm>
 #include <bitset>
@@ -29,7 +29,7 @@ void ContainerProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
   if (pixels.empty())
     return;
 
-  vector<uint8_t> message = txtIO.Read(pathMessage);
+  vector<uint8_t> message = txtIO.ReadBinary(pathMessage);
   if (message.empty())
     return;
 
@@ -64,7 +64,7 @@ void ContainerProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
   fs::path outTextFile = resultsDir / ("extract_message_bit_" +
                                        std::to_string(bitNumber) + ".txt");
 
-  if (!txtIO.Write(outTextFile, message))
+  if (!txtIO.WriteBinary(outTextFile, message))
     return;
 }
 

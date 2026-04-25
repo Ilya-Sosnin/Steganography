@@ -1,15 +1,15 @@
 #ifndef CONTAINERPROCESSOR_HPP
 #define CONTAINERPROCESSOR_HPP
 
+#include "FileIO/ImageIO.hpp"
+#include "FileIO/TextIO.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "ImageIO.hpp"
-#include "TextIO.hpp"
 
 class ContainerProcessor {
 public:

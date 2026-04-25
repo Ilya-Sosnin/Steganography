@@ -8,7 +8,7 @@ TextIO::TextIO() {}
 
 TextIO::~TextIO() {}
 
-vector<uint8_t> TextIO::Read(const fs::path &inputTextFile) {
+vector<uint8_t> TextIO::ReadBinary(const fs::path &inputTextFile) {
   if (!fs::exists(inputTextFile)) {
     cout << "Error: File " << inputTextFile << " does not exist\n";
     return {};
@@ -41,7 +41,7 @@ vector<uint8_t> TextIO::Read(const fs::path &inputTextFile) {
   return privateMessage;
 }
 
-bool TextIO::Write(const fs::path &outTextFile, vector<uint8_t> &v) {
+bool TextIO::WriteBinary(const fs::path &outTextFile, vector<uint8_t> &v) {
   ofstream file(outTextFile, ios::binary);
   if (!file) {
     cout << "Error: Cannot open file " << outTextFile << "\n";

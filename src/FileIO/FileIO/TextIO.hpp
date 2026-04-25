@@ -12,8 +12,8 @@ public:
   TextIO();
   ~TextIO();
 
-  std::vector<uint8_t> Read(const fs::path &inputTextFile);
-  bool Write(const fs::path &inputTextFile, std::vector<uint8_t> &v);
+  std::vector<uint8_t> ReadBinary(const fs::path &inputTextFile);
+  bool WriteBinary(const fs::path &inputTextFile, std::vector<uint8_t> &v);
 
 private:
   static constexpr size_t MIN_TEXT_SIZE = 30720;

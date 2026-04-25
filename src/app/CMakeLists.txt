@@ -13,8 +13,8 @@ set_target_properties(
 target_link_libraries(
   ${target_name}
   PRIVATE
-  ContainerProcessor
   CLI11
+  Container
 )
 
 target_compile_definitions(

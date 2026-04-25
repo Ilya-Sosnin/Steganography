@@ -1,6 +1,6 @@
 #include "CLI/CLI.hpp"
 
-#include "steganography/ContainerProcessor.hpp"
+#include "ContainerProcessor/ContainerProcessor.hpp"
 
 int main(int argc, char *argv[]) {
   CLI::App app{};
