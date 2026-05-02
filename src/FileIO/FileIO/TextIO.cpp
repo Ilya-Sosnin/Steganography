@@ -65,3 +65,20 @@ bool TextIO::WriteBinary(const fs::path &outTextFile, vector<uint8_t> &v) {
 
   return true;
 }
+
+
+bool TextIO::Write(const fs::path &outTextFile, const std::string &str) {
+  ofstream file(outTextFile, ios::binary | ios::beg);
+  if (!file) {
+    cout << "Error: Cannot open file " << outTextFile << "\n";
+    return false;
+  }
+
+  file << str;
+
+  file.close();
+
+  std::cout << "Path to the resulting text file: " << outTextFile << "\n";
+
+  return true;
+}

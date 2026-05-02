@@ -1,4 +1,4 @@
 add_subdirectory(app)
-add_subdirectory(ContainerProcessor)
+#add_subdirectory(ContainerProcessor)
 add_subdirectory(WaterMark)
 add_subdirectory(FileIO)

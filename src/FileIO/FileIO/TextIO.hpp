@@ -2,6 +2,7 @@
 #define TEXTIO_HPP
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -14,6 +15,7 @@ public:
 
   std::vector<uint8_t> ReadBinary(const fs::path &inputTextFile);
   bool WriteBinary(const fs::path &inputTextFile, std::vector<uint8_t> &v);
+  bool Write(const fs::path &inputTextFile, const std::string &str);
 
 private:
   static constexpr size_t MIN_TEXT_SIZE = 30720;

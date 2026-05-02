@@ -21,7 +21,7 @@ vector<uint8_t> ImageIO::Read(const fs::path &imagePath) {
   if (!ParseBMP())
     return {};
 
-  return pixels;
+  return structBmp.pixels;
 }
 
 bool ImageIO::Write(const fs::path &fileName, vector<uint8_t> &v) {
@@ -81,6 +81,17 @@ bool ImageIO::ReadBMP() {
   return true;
 }
 
+int ImageIO::GetWidthImage() { return structBmp.infoBmp.biWidth; }
+
+int ImageIO::GetHeightImage() { return structBmp.infoBmp.biHeight; }
+
+size_t ImageIO::GetHeaderSize() {
+  return sizeof(structBmp.headerBmp) + sizeof(structBmp.infoBmp) +
+         structBmp.palette.size();
+}
+
+size_t ImageIO::GetPixelsSize() { return structBmp.pixels.size(); }
+
 bool ImageIO::ValidateInputBMP() {
   if (binaryImage.size() < BMP_HEADER_SIZE) {
     cout << "Error: File " << inputImagePath.filename()
@@ -100,19 +111,19 @@ bool ImageIO::ValidateInputBMP() {
   memcpy(&height, &binaryImage[22], sizeof(uint32_t));
   memcpy(&bitCount, &binaryImage[28], sizeof(uint16_t));
 
-  if (width != 512 || height != 512) {
-    cout << "Error: File " << inputImagePath.filename()
-         << " has an incorrect resolution - " << width << "x" << height
-         << ". Expected 512x512\n";
-    return false;
-  }
+  // if (width != 512 || height != 512) {
+  //   cout << "Error: File " << inputImagePath.filename()
+  //        << " has an incorrect resolution - " << width << "x" << height
+  //        << ". Expected 512x512\n";
+  //   return false;
+  // }
 
-  if (bitCount != 8) {
-    cout << "Error: File " << inputImagePath.filename()
-         << " has an incorrect number of bits per pixel - " << bitCount
-         << ". Expected 8\n";
-    return false;
-  }
+  // if (bitCount != 8) {
+  //   cout << "Error: File " << inputImagePath.filename()
+  //        << " has an incorrect number of bits per pixel - " << bitCount
+  //        << ". Expected 8\n";
+  //   return false;
+  // }
 
   return true;
 }
@@ -124,16 +135,16 @@ bool ImageIO::ParseBMP() {
     return false;
   }
 
-  memcpy(&headerBMP, &binaryImage[0], sizeof(headerBMP));
-  memcpy(&infoBMP, &binaryImage[14], sizeof(infoBMP));
+  memcpy(&structBmp.headerBmp, &binaryImage[0], sizeof(structBmp.headerBmp));
+  memcpy(&structBmp.infoBmp, &binaryImage[14], sizeof(structBmp.infoBmp));
 
-  int numColors = infoBMP.biClrUsed;
+  int numColors = structBmp.infoBmp.biClrUsed;
 
   if (numColors == 0)
-    numColors = (1 << infoBMP.biBitCount);
+    numColors = (1 << structBmp.infoBmp.biBitCount);
 
-  uint32_t startPixels = headerBMP.bfOffBits;
-  size_t startPalette = sizeof(headerBMP) + infoBMP.biSize;
+  uint32_t startPixels = structBmp.headerBmp.bfOffBits;
+  size_t startPalette = sizeof(structBmp.headerBmp) + structBmp.infoBmp.biSize;
 
   if (startPalette > binaryImage.size() || startPixels > binaryImage.size() ||
       startPalette > startPixels) {
@@ -141,9 +152,9 @@ bool ImageIO::ParseBMP() {
     return false;
   }
 
-  palette.assign(binaryImage.begin() + startPalette,
-                 binaryImage.begin() + startPixels);
-  pixels.assign(binaryImage.begin() + startPixels, binaryImage.end());
+  structBmp.palette.assign(binaryImage.begin() + startPalette,
+                           binaryImage.begin() + startPixels);
+  structBmp.pixels.assign(binaryImage.begin() + startPixels, binaryImage.end());
 
   return true;
 }
@@ -165,26 +176,27 @@ bool ImageIO::ValidateOutputBMP(const fs::path &outputImagePath,
     return false;
   }
 
-  if (headerBMP.bfType != 0x4D42) {
+  if (structBmp.headerBmp.bfType != 0x4D42) {
     cout << "Error: Invalid BMP header when attempting to write to file "
          << outputImagePath << "\n";
     return false;
   }
 
-  if (infoBMP.biSize != 40) {
+  if (structBmp.infoBmp.biSize != 40) {
     cout << "Error: Invalid BMP info when attempting to write to file "
          << outputImagePath << "\n";
     return false;
   }
 
-  if (infoBMP.biBitCount <= 8 && palette.empty()) {
+  if (structBmp.infoBmp.biBitCount <= 8 && structBmp.palette.empty()) {
     cout << "Error: Invalid palette when attempting to write to file "
          << outputImagePath << "\n";
     return false;
   }
 
-  if (headerBMP.bfOffBits <
-      sizeof(headerBMP) + infoBMP.biSize + palette.size()) {
+  if (structBmp.headerBmp.bfOffBits < sizeof(structBmp.headerBmp) +
+                                          structBmp.infoBmp.biSize +
+                                          structBmp.palette.size()) {
     cout << "Error: Invalid size of BMP header, BMP information or palette "
             "when writing to file  "
          << outputImagePath << "\n";
@@ -202,20 +214,22 @@ bool ImageIO::WriteBMP(const fs::path &outputImagePath, vector<uint8_t> &v) {
     return false;
   }
 
-  if (!file.write(reinterpret_cast<char *>(&headerBMP), sizeof(headerBMP))) {
+  if (!file.write(reinterpret_cast<char *>(&structBmp.headerBmp),
+                  sizeof(structBmp.headerBmp))) {
     cout << "Error: Failed to write header BMP to file " << outputImagePath
          << "\n";
     return false;
   }
 
-  if (!file.write(reinterpret_cast<char *>(&infoBMP), sizeof(infoBMP))) {
+  if (!file.write(reinterpret_cast<char *>(&structBmp.infoBmp),
+                  sizeof(structBmp.infoBmp))) {
     cout << "Error: Failed to write info BMP to file " << outputImagePath
          << "\n";
     return false;
   }
 
-  if (!file.write(reinterpret_cast<char *>(palette.data()),
-                  palette.size() * sizeof(uint8_t))) {
+  if (!file.write(reinterpret_cast<char *>(structBmp.palette.data()),
+                  structBmp.palette.size() * sizeof(uint8_t))) {
     cout << "Error: Failed to write palette to file " << outputImagePath
          << "\n";
     return false;

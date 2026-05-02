@@ -6,7 +6,7 @@ add_library(${target_name} STATIC
 )
 
 target_link_libraries(
-  ${target_name} PRIVATE
+  ${target_name} PUBLIC
   FileIO
 )
 
@@ -17,6 +17,6 @@ target_include_directories(
 
 
 target_compile_definitions(
-  ${target_name} PRIVATE 
+  ${target_name} PUBLIC
   PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
 )

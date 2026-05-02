@@ -14,10 +14,11 @@ target_link_libraries(
   ${target_name}
   PRIVATE
   CLI11
-  Container
+  #Container
+  Mark
 )
 
 target_compile_definitions(
-  ${target_name} PRIVATE 
+  ${target_name} PUBLIC 
   PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
 )

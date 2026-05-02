@@ -29,6 +29,13 @@ struct InfoBMP {
   uint32_t biClrUsed;
   uint32_t biClrImportant;
 };
+
+struct StructBMP {
+  FileHeaderBMP headerBmp;
+  InfoBMP infoBmp;
+  vector<uint8_t> palette;
+  vector<uint8_t> pixels;
+};
 #pragma pack(pop)
 
 class ImageIO {
@@ -39,6 +46,11 @@ public:
   vector<uint8_t> Read(const fs::path &imageFile);
   bool Write(const fs::path &imageName, vector<uint8_t> &v);
 
+  int GetWidthImage();
+  int GetHeightImage();
+  size_t GetHeaderSize();
+  size_t GetPixelsSize();
+
 private:
   static constexpr size_t BMP_HEADER_SIZE = 54;
 
@@ -47,11 +59,7 @@ private:
   fs::path outputImageDir;
 
   vector<uint8_t> binaryImage;
-  vector<uint8_t> palette;
-  vector<uint8_t> pixels;
-
-  FileHeaderBMP headerBMP;
-  InfoBMP infoBMP;
+  StructBMP structBmp;
 
   bool ReadBMP();
   bool ValidateInputBMP();
