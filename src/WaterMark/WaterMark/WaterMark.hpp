@@ -7,19 +7,29 @@
 #include <iostream>
 #include <vector>
 
+struct StructDW {
+  uint32_t width;
+  uint32_t height;
+  vector<uint8_t> pixels;
+};
+
 class WaterMark {
 public:
   WaterMark();
   ~WaterMark();
 
   void EmbedWaterMarkLSB(const fs::path &pathImage, const fs::path &pathLogo);
+  void ExtractedMarkLSB(const fs::path &pathSeed, const fs::path &pathImage);
 
 private:
-  int bitNum{1};
+  int bitPixel{0};
+  fs::path resultDir = PROJECT_ROOT / fs::path("results");
+
   int GenerateSeed();
   vector<int> GenerateKey(int seed, size_t size);
-  void EmbedLSB(int seed, vector<uint8_t> &image, vector<uint8_t> &logo);
-  vector <uint8_t> ExtractLSB(int seed);
+  int ReadSeed(const fs::path &pathSeed);
+  void EmbedLSB(int seed, StructBMP &image, StructBMP &logo);
+  StructDW ExtractLSB(int seed, StructBMP &image);
 };
 
 #endif
