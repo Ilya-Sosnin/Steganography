@@ -21,6 +21,9 @@ public:
   void EmbedWaterMarkLSB(const fs::path &pathImage, const fs::path &pathLogo);
   void ExtractedMarkLSB(const fs::path &pathSeed, const fs::path &pathImage);
 
+  void EmbedWaterMarkLocalVariance(const fs::path &pathImage,
+                                   const fs::path &pathLogo);
+
 private:
   int bitPixel{0};
   fs::path resultDir = PROJECT_ROOT / fs::path("results");
@@ -28,8 +31,12 @@ private:
   int GenerateSeed();
   vector<int> GenerateKey(int seed, size_t size);
   int ReadSeed(const fs::path &pathSeed);
-  void EmbedLSB(int seed, StructBMP &image, StructBMP &logo);
-  StructDW ExtractLSB(int seed, StructBMP &image);
+
+  void EmbedDW(vector<int> &order, StructBMP &image, StructBMP &logo);
+  StructDW ExtractDW(vector<int> &order, StructBMP &image);
+
+  vector<pair<int, double>> CalculaingPixelVariance(StructBMP &image);
+  vector<int> SortingVariance(vector<pair<int, double>> &variancePixels);
 };
 
 #endif
