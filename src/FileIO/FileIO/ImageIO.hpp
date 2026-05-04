@@ -1,11 +1,12 @@
 #ifndef IMAGEIO_HPP
 #define IMAGEIO_HPP
 
+#include <iostream>
 #include <filesystem>
 #include <vector>
 
 using namespace std;
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 
 #pragma pack(push, 1)
 struct FileHeaderBMP {
@@ -14,6 +15,14 @@ struct FileHeaderBMP {
   uint16_t bfReserved1;
   uint16_t bfReserved2;
   uint32_t bfOffBits;
+
+  void PrintHeaderBMP() const {
+    cout << "\nbfType: " << bfType << "\n";
+    cout << "bfSize: " << bfSize << "\n";
+    cout << "bfReserved1: " << bfReserved1 << "\n";
+    cout << "bfReserved2: " << bfReserved2 << "\n";
+    cout << "bfOffBits: " << bfOffBits << "\n\n";
+  }
 };
 
 struct InfoBMP {
@@ -28,6 +37,20 @@ struct InfoBMP {
   uint32_t biYPelsPerMeter;
   uint32_t biClrUsed;
   uint32_t biClrImportant;
+
+  void PrintInfoBMP() const {
+    cout << "\nbiSize: " << biSize << "\n";
+    cout << "biWidth: " << biWidth << "\n";
+    cout << "biHeight: " << biHeight << "\n";
+    cout << "biPlanes: " << biPlanes << "\n";
+    cout << "biBitCount: " << biBitCount << "\n";
+    cout << "biCompression: " << biCompression << "\n";
+    cout << "biSizeImage: " << biSizeImage << "\n";
+    cout << "biXPelsPerMeter " << biXPelsPerMeter << "\n";
+    cout << "biYPelsPerMeter: " << biYPelsPerMeter << "\n";
+    cout << "biClrUsed: " << biClrUsed << "\n";
+    cout << "biClrImportant: " << biClrImportant << "\n\n";
+  }
 };
 
 struct StructBMP {
@@ -41,33 +64,29 @@ struct StructBMP {
 class ImageIO {
 public:
   ImageIO();
+  ImageIO(const fs::path &imagePath);
   ~ImageIO();
 
-  vector<uint8_t> Read(const fs::path &imageFile);
-  bool Write(const fs::path &imageName, vector<uint8_t> &v);
+  bool ReadFileBMP(const fs::path &imagePath);
+  bool WriteFileBMP(const fs::path &imagePath);
 
-  int GetWidthImage();
-  int GetHeightImage();
-  size_t GetHeaderSize();
-  size_t GetPixelsSize();
+  void CreateBMP(uint32_t width, uint32_t height,
+                 const vector<uint8_t> &pixels);
+
+  vector<uint8_t> &GetBinaryImage() { return binaryImage; };
+  StructBMP &GetStructImage() { return structBmp; };
 
 private:
   static constexpr size_t BMP_HEADER_SIZE = 54;
 
-  fs::path originalImageName;
-  fs::path inputImagePath;
-  fs::path outputImageDir;
-
   vector<uint8_t> binaryImage;
   StructBMP structBmp;
 
-  bool ReadBMP();
-  bool ValidateInputBMP();
-  bool ParseBMP();
-
-  void MakeOutputDir();
-  bool ValidateOutputBMP(const fs::path &outputImagePath, vector<uint8_t> &v);
-  bool WriteBMP(const fs::path &outputImagePath, vector<uint8_t> &v);
+  bool ReadBMP(const fs::path &imagePath);
+  bool ValidateInputBMP(const fs::path &imagePath);
+  bool ParseBMP(const fs::path &imagePath);
+  // bool ValidateOutputBMP(const fs::path &imagePath);
+  bool WriteBMP(const fs::path &imagePath);
 };
 
 #endif

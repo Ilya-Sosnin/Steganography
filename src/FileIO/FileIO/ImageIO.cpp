@@ -1,62 +1,89 @@
 #include "ImageIO.hpp"
 
 #include <fstream>
-#include <iostream>
 
 ImageIO::ImageIO() {}
 
+ImageIO::ImageIO(const fs::path &imagePath) { ReadFileBMP(imagePath); }
+
 ImageIO::~ImageIO() {}
 
-vector<uint8_t> ImageIO::Read(const fs::path &imagePath) {
-
-  inputImagePath = imagePath;
-  originalImageName = inputImagePath.filename().stem().string();
-
-  if (!ReadBMP())
-    return {};
-
-  if (!ValidateInputBMP())
-    return {};
-
-  if (!ParseBMP())
-    return {};
-
-  return structBmp.pixels;
-}
-
-bool ImageIO::Write(const fs::path &fileName, vector<uint8_t> &v) {
-  if (fileName.extension().empty() ||
-      (fileName.extension() != ".bmp" && fileName.extension() != ".BMP")) {
-    cout << "Error: File name contains an invalid or empty extension\n";
+bool ImageIO::ReadFileBMP(const fs::path &imagePath) {
+  if (!ReadBMP(imagePath)) {
+    cout << "Error: Failed to read file " << imagePath << "\n";
     return false;
   }
 
-  MakeOutputDir();
-
-  fs::path outputImageName =
-      originalImageName.string() + "_" + fileName.string();
-  fs::path outputImagePath = outputImageDir / outputImageName;
-
-  if (!ValidateOutputBMP(outputImagePath, v))
+  if (!ValidateInputBMP(imagePath)) {
+    cout << "Error: File " << imagePath << " not valid\n";
     return false;
+  }
 
-  if (!WriteBMP(outputImagePath, v))
+  if (!ParseBMP(imagePath)) {
+    cout << "Error: Incorrect file format " << imagePath << "\n";
     return false;
-
-  std::cout << "Path to the resulting image: " << outputImagePath << "\n";
+  }
 
   return true;
 }
 
-bool ImageIO::ReadBMP() {
-  if (!fs::exists(inputImagePath)) {
-    cout << "Error: File " << inputImagePath << " does not exist\n";
+bool ImageIO::WriteFileBMP(const fs::path &imagePath) {
+  if (imagePath.extension().empty() ||
+      (imagePath.extension() != ".bmp" && imagePath.extension() != ".BMP")) {
+    cout << "Error: File name contains an invalid or empty extension\n";
     return false;
   }
 
-  ifstream file(inputImagePath, ios_base::binary);
+  // if (!ValidateOutputBMP(imagePath))
+  //   return false;
+
+  if (!WriteBMP(imagePath))
+    return false;
+
+  std::cout << "Path to the resulting image: " << imagePath << "\n";
+
+  return true;
+}
+
+void ImageIO::CreateBMP(uint32_t width, uint32_t height,
+                        const vector<uint8_t> &pixels) {
+  structBmp.headerBmp.bfType = 0x4D42;
+  structBmp.headerBmp.bfReserved1 = 0;
+  structBmp.headerBmp.bfReserved2 = 0;
+
+  structBmp.palette.resize(256 * 4);
+  for (int i = 0; i < 256; ++i) {
+    structBmp.palette[i * 4 + 0] = i;
+    structBmp.palette[i * 4 + 1] = i;
+    structBmp.palette[i * 4 + 2] = i;
+    structBmp.palette[i * 4 + 3] = 0;
+  }
+
+  structBmp.infoBmp.biWidth = width;
+  structBmp.infoBmp.biHeight = height;
+  structBmp.infoBmp.biBitCount = 8;
+  structBmp.infoBmp.biSize = 40;
+  structBmp.infoBmp.biPlanes = 1;
+  structBmp.infoBmp.biCompression = 0;
+  structBmp.infoBmp.biSizeImage = pixels.size();
+
+  structBmp.pixels = pixels;
+
+  structBmp.headerBmp.bfOffBits =
+      sizeof(FileHeaderBMP) + sizeof(InfoBMP) + structBmp.palette.size();
+
+  structBmp.headerBmp.bfSize = structBmp.headerBmp.bfOffBits + pixels.size();
+}
+
+bool ImageIO::ReadBMP(const fs::path &imagePath) {
+  if (!fs::exists(imagePath)) {
+    cout << "Error: File " << imagePath << " does not exist\n";
+    return false;
+  }
+
+  ifstream file(imagePath, ios_base::binary);
   if (!file.is_open()) {
-    cout << "Error: Cannot open file " << inputImagePath << "\n";
+    cout << "Error: Cannot open file " << imagePath << "\n";
     return false;
   }
 
@@ -65,14 +92,14 @@ bool ImageIO::ReadBMP() {
   file.seekg(0, ios::beg);
 
   if (sizeFile <= 0) {
-    cout << "Error: File " << inputImagePath.filename() << " is empty\n";
+    cout << "Error: File " << imagePath.filename() << " is empty\n";
     return false;
   }
 
   binaryImage.resize(sizeFile);
 
   if (!file.read(reinterpret_cast<char *>(binaryImage.data()), sizeFile)) {
-    cout << "Error: Failed to read file " << inputImagePath.filename() << "\n";
+    cout << "Error: Failed to read file " << imagePath.filename() << "\n";
     return false;
   }
 
@@ -81,27 +108,15 @@ bool ImageIO::ReadBMP() {
   return true;
 }
 
-int ImageIO::GetWidthImage() { return structBmp.infoBmp.biWidth; }
-
-int ImageIO::GetHeightImage() { return structBmp.infoBmp.biHeight; }
-
-size_t ImageIO::GetHeaderSize() {
-  return sizeof(structBmp.headerBmp) + sizeof(structBmp.infoBmp) +
-         structBmp.palette.size();
-}
-
-size_t ImageIO::GetPixelsSize() { return structBmp.pixels.size(); }
-
-bool ImageIO::ValidateInputBMP() {
+bool ImageIO::ValidateInputBMP(const fs::path &imagePath) {
   if (binaryImage.size() < BMP_HEADER_SIZE) {
-    cout << "Error: File " << inputImagePath.filename()
+    cout << "Error: File " << imagePath.filename()
          << " too is too small in size\n";
     return false;
   }
 
   if (binaryImage[0] != 'B' || binaryImage[1] != 'M') {
-    cout << "Error: File " << inputImagePath.filename()
-         << " is not in BMP format\n";
+    cout << "Error: File " << imagePath.filename() << " is not in BMP format\n";
     return false;
   }
   uint32_t width, height;
@@ -128,9 +143,9 @@ bool ImageIO::ValidateInputBMP() {
   return true;
 }
 
-bool ImageIO::ParseBMP() {
+bool ImageIO::ParseBMP(const fs::path &imagePath) {
   if (binaryImage.size() < BMP_HEADER_SIZE) {
-    cout << "Error: File " << inputImagePath.filename()
+    cout << "Error: File " << imagePath.filename()
          << " too is too small in size\n";
     return false;
   }
@@ -148,7 +163,7 @@ bool ImageIO::ParseBMP() {
 
   if (startPalette > binaryImage.size() || startPixels > binaryImage.size() ||
       startPalette > startPixels) {
-    cout << "Error: File " << inputImagePath.filename() << " is corrupted\n";
+    cout << "Error: File " << imagePath.filename() << " is corrupted\n";
     return false;
   }
 
@@ -159,54 +174,38 @@ bool ImageIO::ParseBMP() {
   return true;
 }
 
-void ImageIO::MakeOutputDir() {
+// bool ImageIO::ValidateOutputBMP(const fs::path &outputImagePath) {
+//   if (structBmp.headerBmp.bfType != 0x4D42) {
+//     cout << "Error: Invalid BMP header when attempting to write to file "
+//          << outputImagePath << "\n";
+//     return false;
+//   }
 
-  fs::path numSet = inputImagePath.parent_path().stem();
+//   if (structBmp.infoBmp.biSize != 40) {
+//     cout << "Error: Invalid BMP info when attempting to write to file "
+//          << outputImagePath << "\n";
+//     return false;
+//   }
 
-  outputImageDir = fs::path(PROJECT_ROOT) / "results" / numSet;
+//   if (structBmp.infoBmp.biBitCount <= 8 && structBmp.palette.empty()) {
+//     cout << "Error: Invalid palette when attempting to write to file "
+//          << outputImagePath << "\n";
+//     return false;
+//   }
 
-  fs::create_directories(outputImageDir);
-}
+//   if (structBmp.headerBmp.bfOffBits < sizeof(structBmp.headerBmp) +
+//                                           structBmp.infoBmp.biSize +
+//                                           structBmp.palette.size()) {
+//     cout << "Error: Invalid size of BMP header, BMP information or palette "
+//             "when writing to file  "
+//          << outputImagePath << "\n";
+//     return false;
+//   }
 
-bool ImageIO::ValidateOutputBMP(const fs::path &outputImagePath,
-                                vector<uint8_t> &v) {
-  if (v.empty()) {
-    cout << "Error: Set of pixels to write to file " << inputImagePath
-         << " is empty\n";
-    return false;
-  }
+//   return true;
+// }
 
-  if (structBmp.headerBmp.bfType != 0x4D42) {
-    cout << "Error: Invalid BMP header when attempting to write to file "
-         << outputImagePath << "\n";
-    return false;
-  }
-
-  if (structBmp.infoBmp.biSize != 40) {
-    cout << "Error: Invalid BMP info when attempting to write to file "
-         << outputImagePath << "\n";
-    return false;
-  }
-
-  if (structBmp.infoBmp.biBitCount <= 8 && structBmp.palette.empty()) {
-    cout << "Error: Invalid palette when attempting to write to file "
-         << outputImagePath << "\n";
-    return false;
-  }
-
-  if (structBmp.headerBmp.bfOffBits < sizeof(structBmp.headerBmp) +
-                                          structBmp.infoBmp.biSize +
-                                          structBmp.palette.size()) {
-    cout << "Error: Invalid size of BMP header, BMP information or palette "
-            "when writing to file  "
-         << outputImagePath << "\n";
-    return false;
-  }
-
-  return true;
-}
-
-bool ImageIO::WriteBMP(const fs::path &outputImagePath, vector<uint8_t> &v) {
+bool ImageIO::WriteBMP(const fs::path &outputImagePath) {
 
   ofstream file(outputImagePath, ios::binary);
   if (!file) {
@@ -235,8 +234,8 @@ bool ImageIO::WriteBMP(const fs::path &outputImagePath, vector<uint8_t> &v) {
     return false;
   }
 
-  if (!file.write(reinterpret_cast<char *>(v.data()),
-                  v.size() * sizeof(uint8_t))) {
+  if (!file.write(reinterpret_cast<char *>(structBmp.pixels.data()),
+                  structBmp.pixels.size() * sizeof(uint8_t))) {
     cout << "Error: Failed to write pixel to file " << outputImagePath << "\n";
     return false;
   }
