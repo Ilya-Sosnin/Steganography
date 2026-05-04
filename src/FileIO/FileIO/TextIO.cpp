@@ -2,43 +2,67 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
+
 
 TextIO::TextIO() {}
 
 TextIO::~TextIO() {}
 
-vector<uint8_t> TextIO::ReadBinary(const fs::path &inputTextFile) {
-  if (!fs::exists(inputTextFile)) {
-    cout << "Error: File " << inputTextFile << " does not exist\n";
+vector<uint8_t> TextIO::ReadBinary(const fs::path &textPath) {
+  if (!fs::exists(textPath)) {
+    cout << "Error: File " << textPath << " does not exist\n";
     return {};
   }
 
-  uintmax_t size = fs::file_size(inputTextFile);
-  if (size < MIN_TEXT_SIZE) {
-    cout << "Error: The message must be at least 30 bytes. Current size: "
-         << size << " bytes\n";
-    return {};
-  }
+  uintmax_t size = fs::file_size(textPath);
+  // if (size < MIN_TEXT_SIZE) {
+  //   cout << "Error: The message must be at least 30 bytes. Current size: "
+  //        << size << " bytes\n";
+  //   return {};
+  // }
 
-  vector<uint8_t> privateMessage;
+  vector<uint8_t> text;
 
-  ifstream file(inputTextFile, ios::binary);
+  ifstream file(textPath, ios::binary);
   if (!file) {
-    cout << "Error: Cannot open file " << inputTextFile << "\n";
+    cout << "Error: Cannot open file " << textPath << "\n";
     return {};
   }
 
-  privateMessage.resize(size);
+  text.resize(size);
 
-  if (!file.read(reinterpret_cast<char *>(privateMessage.data()), size)) {
-    cout << "Error: Failed to read file " << inputTextFile << "\n";
+  if (!file.read(reinterpret_cast<char *>(text.data()), size)) {
+    cout << "Error: Failed to read file " << textPath << "\n";
     return {};
   }
 
   file.close();
 
-  return privateMessage;
+  return text;
+}
+
+vector<string> TextIO::Read(const fs::path &textPath) {
+  vector<string> v;
+
+  ifstream file(textPath);
+  if (!file) {
+    cout << "Error: Cannot open file " << textPath << "\n";
+    return {};
+  }
+
+  if (file.is_open()) {
+    string line;
+    while (getline(file, line)) {
+      v.push_back(line);
+    }
+    file.close();
+  } else {
+    cout << "Error:  \n";
+  }
+
+  return v;
 }
 
 bool TextIO::WriteBinary(const fs::path &outTextFile, vector<uint8_t> &v) {
@@ -65,7 +89,6 @@ bool TextIO::WriteBinary(const fs::path &outTextFile, vector<uint8_t> &v) {
 
   return true;
 }
-
 
 bool TextIO::Write(const fs::path &outTextFile, const std::string &str) {
   ofstream file(outTextFile, ios::binary | ios::beg);
