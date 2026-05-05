@@ -27,6 +27,7 @@ public:
 
 private:
   int bitPixel{0};
+  double threshold{10.0};
   fs::path resultDir = PROJECT_ROOT / fs::path("results");
 
   int GenerateSeed();
@@ -36,8 +37,7 @@ private:
   void EmbedDW(vector<int> &order, StructBMP &image, StructBMP &logo);
   StructDW ExtractDW(vector<int> &order, StructBMP &image);
 
-  vector<pair<int, double>> CalculaingPixelVariance(StructBMP &image);
-  vector<int> SortingVariance(vector<pair<int, double>> &variancePixels);
+  vector<int> CalculaingPixelVariance(StructBMP &image);
 };
 
 #endif

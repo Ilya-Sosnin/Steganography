@@ -19,7 +19,7 @@ void WaterMark::EmbedWaterMarkLSB(const fs::path &pathImage,
   size_t capContainer = image.pixels.size();
 
   if (bitsDw < capContainer / 2) {
-    cout << "Error: Small size digietal watermark\n";
+    cout << "Error: Small size digital watermark\n";
     return;
   }
 
@@ -73,11 +73,10 @@ void WaterMark::EmbedWaterMarkLocalVariance(const fs::path &pathImage,
   ImageIO dwImg(pathDw);
   StructBMP &watermark = dwImg.GetStructImage();
 
-  vector<pair<int, double>> variancePixels = CalculaingPixelVariance(image);
-  vector<int> orderPixels = SortingVariance(variancePixels);
+  vector<int> goodPixels = CalculaingPixelVariance(image);
 
   size_t bitsDw = watermark.pixels.size() * 8 + 32 + 32 + 32;
-  size_t capContainer = orderPixels.size();
+  size_t capContainer = goodPixels.size();
 
   if (bitsDw < capContainer / 2) {
     cout << "Error: Small size digital watermark\n";
@@ -89,7 +88,7 @@ void WaterMark::EmbedWaterMarkLocalVariance(const fs::path &pathImage,
     return;
   }
 
-  EmbedDW(orderPixels, image, watermark);
+  EmbedDW(goodPixels, image, watermark);
 
   string originalName = pathImage.filename().stem().string();
   fs::path pathEmbedDw =
@@ -103,16 +102,14 @@ void WaterMark::ExtractWaterMarkLocalVariance(const fs::path &pathImage) {
   originalImage.ReadFileBMP(pathImage);
   StructBMP image = originalImage.GetStructImage();
 
-  vector<pair<int, double>> variancePixels = CalculaingPixelVariance(image);
-  vector<int> orderPixels = SortingVariance(variancePixels);
-
-  StructDW watermark = ExtractDW(orderPixels, image);
+  vector<int> goodPixels = CalculaingPixelVariance(image);
+  StructDW watermark = ExtractDW(goodPixels, image);
 
   ImageIO DwImage;
   DwImage.CreateBMP(watermark.width, watermark.height, watermark.pixels);
 
   string originalName = pathImage.filename().stem().string();
-  fs::path pathExtDw= resultDir / fs::path(originalName + "_ext_dw.bmp");
+  fs::path pathExtDw = resultDir / fs::path(originalName + "_ext_dw.bmp");
 
   DwImage.WriteFileBMP(pathExtDw);
 }
@@ -146,7 +143,8 @@ vector<int> WaterMark::GenerateKey(int seed, size_t size) {
   return embedPixels;
 }
 
-void WaterMark::EmbedDW(vector<int> &order, StructBMP &image, StructBMP &watermark) {
+void WaterMark::EmbedDW(vector<int> &order, StructBMP &image,
+                        StructBMP &watermark) {
   uint32_t widthDw = watermark.infoBmp.biWidth;
   uint32_t heightDw = watermark.infoBmp.biHeight;
   uint32_t sizeDw = watermark.pixels.size();
@@ -235,51 +233,50 @@ StructDW WaterMark::ExtractDW(vector<int> &order, StructBMP &image) {
   return dw;
 }
 
-vector<pair<int, double>> WaterMark::CalculaingPixelVariance(StructBMP &image) {
-  vector<pair<int, double>> variancePixels;
+vector<int> WaterMark::CalculaingPixelVariance(
+                                               StructBMP &image) {
+  vector<int> goodPixels;
+
   int width = image.infoBmp.biWidth;
   int height = image.infoBmp.biHeight;
 
   for (int y = 1; y < height - 1; ++y) {
     for (int x = 1; x < width - 1; ++x) {
-      double sum = 0;
-      double sumSqr = 0;
+
+      if ((x + y) % 2 == 0)
+        continue;
+
+      double sum = 0.0;
+      double sumSqr = 0.0;
       int count = 0;
 
       for (int dy = -1; dy <= 1; ++dy) {
         for (int dx = -1; dx <= 1; ++dx) {
-          int py = y + dy;
-          int px = x + dx;
 
-          int pixelIndex = py * width + px;
-          uint8_t p = image.pixels[pixelIndex];
+          int px = x + dx;
+          int py = y + dy;
+
+          if ((px + py) % 2 != 0)
+            continue;
+
+          int idx = py * width + px;
+          uint8_t p = image.pixels[idx];
 
           sum += p;
           sumSqr += p * p;
           count++;
         }
       }
+
       double avg1 = sum / count;
       double avg2 = sumSqr / count;
       double variance = avg2 - avg1 * avg1;
-      int indexPixel = y * width + x;
 
-      variancePixels.push_back({indexPixel, variance});
+      if (variance > threshold) {
+        goodPixels.push_back(y * width + x);
+      }
     }
   }
-  return variancePixels;
-}
 
-vector<int>
-WaterMark::SortingVariance(vector<pair<int, double>> &variancePixels) {
-  sort(variancePixels.begin(), variancePixels.end(),
-       [](const auto &a, const auto &b) { return a.second > b.second; });
-
-  vector<int> pixels;
-  pixels.reserve(variancePixels.size());
-
-  for (const auto &v : variancePixels)
-    pixels.push_back(v.first);
-
-  return pixels;
+  return goodPixels;
 }
