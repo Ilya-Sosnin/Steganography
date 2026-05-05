@@ -8,23 +8,23 @@ WaterMark::WaterMark() {}
 WaterMark::~WaterMark() {}
 
 void WaterMark::EmbedWaterMarkLSB(const fs::path &pathImage,
-                                  const fs::path &pathLogo) {
+                                  const fs::path &pathDw) {
   ImageIO originalImg(pathImage);
   StructBMP &image = originalImg.GetStructImage();
 
-  ImageIO logoImg(pathLogo);
-  StructBMP &logo = logoImg.GetStructImage();
+  ImageIO dwImg(pathDw);
+  StructBMP &watermark = dwImg.GetStructImage();
 
-  size_t bitsLogo = logo.pixels.size() * 8 + 32 + 32 + 32;
+  size_t bitsDw = watermark.pixels.size() * 8 + 32 + 32 + 32;
   size_t capContainer = image.pixels.size();
 
-  if (bitsLogo < capContainer / 2) {
-    cout << "Error: Small size logo \n";
+  if (bitsDw < capContainer / 2) {
+    cout << "Error: Small size digietal watermark\n";
     return;
   }
 
-  if (bitsLogo > capContainer) {
-    cout << "Error: Logo size is very large\n";
+  if (bitsDw > capContainer) {
+    cout << "Error: Digital watermark size is very large\n";
     return;
   }
 
@@ -35,13 +35,13 @@ void WaterMark::EmbedWaterMarkLSB(const fs::path &pathImage,
 
   vector<int> key = GenerateKey(seed, image.pixels.size());
 
-  EmbedDW(key, image, logo);
+  EmbedDW(key, image, watermark);
 
   string originalName = pathImage.filename().stem().string();
-  fs::path pathEmbedLogo =
-      resultDir / fs::path(originalName + "_embed_logo_lsb.bmp");
+  fs::path pathEmbedDw =
+      resultDir / fs::path(originalName + "_embed_dw_lsb.bmp");
 
-  originalImg.WriteFileBMP(pathEmbedLogo);
+  originalImg.WriteFileBMP(pathEmbedDw);
 }
 
 void WaterMark::ExtractedMarkLSB(const fs::path &pathSeed,
@@ -53,49 +53,68 @@ void WaterMark::ExtractedMarkLSB(const fs::path &pathSeed,
 
   vector<int> key = GenerateKey(seed, image.pixels.size());
 
-  StructDW dw = ExtractDW(key, image);
+  StructDW watermark = ExtractDW(key, image);
 
-  ImageIO logoImage;
-  logoImage.CreateBMP(dw.width, dw.height, dw.pixels);
+  ImageIO DwImage;
+  DwImage.CreateBMP(watermark.width, watermark.height, watermark.pixels);
 
   string originalName = pathImage.filename().stem().string();
-  fs::path pathExtLogo = resultDir / fs::path(originalName + "_ext_logo.bmp");
+  fs::path pathExtDw = resultDir / fs::path(originalName + "_ext_dw.bmp");
 
-  logoImage.WriteFileBMP(pathExtLogo);
+  DwImage.WriteFileBMP(pathExtDw);
 }
 
 void WaterMark::EmbedWaterMarkLocalVariance(const fs::path &pathImage,
-                                             const fs::path &pathLogo) {
+                                            const fs::path &pathDw) {
 
   ImageIO originalImg(pathImage);
   StructBMP &image = originalImg.GetStructImage();
 
-  ImageIO logoImg(pathLogo);
-  StructBMP &logo = logoImg.GetStructImage();
+  ImageIO dwImg(pathDw);
+  StructBMP &watermark = dwImg.GetStructImage();
 
   vector<pair<int, double>> variancePixels = CalculaingPixelVariance(image);
   vector<int> orderPixels = SortingVariance(variancePixels);
 
-  size_t bitsLogo = logo.pixels.size() * 8 + 32 + 32 + 32;
+  size_t bitsDw = watermark.pixels.size() * 8 + 32 + 32 + 32;
   size_t capContainer = orderPixels.size();
 
-  if (bitsLogo < capContainer / 2) {
-    cout << "Error: Small size logo \n";
+  if (bitsDw < capContainer / 2) {
+    cout << "Error: Small size digital watermark\n";
     return;
   }
 
-  if (bitsLogo > capContainer) {
-    cout << "Error: Logo size is very large\n";
+  if (bitsDw > capContainer) {
+    cout << "Error: Digital watermark size is very large\n";
     return;
   }
 
-  EmbedDW(orderPixels, image, logo);
+  EmbedDW(orderPixels, image, watermark);
 
   string originalName = pathImage.filename().stem().string();
-  fs::path pathEmbedLogo =
-      resultDir / fs::path(originalName + "_embed_logo_var.bmp");
+  fs::path pathEmbedDw =
+      resultDir / fs::path(originalName + "_embed_dw_variance.bmp");
 
-  originalImg.WriteFileBMP(pathEmbedLogo);
+  originalImg.WriteFileBMP(pathEmbedDw);
+}
+
+void WaterMark::ExtractWaterMarkLocalVariance(const fs::path &pathImage) {
+  ImageIO originalImage;
+  originalImage.ReadFileBMP(pathImage);
+  StructBMP image = originalImage.GetStructImage();
+
+  vector<pair<int, double>> variancePixels = CalculaingPixelVariance(image);
+  vector<int> orderPixels = SortingVariance(variancePixels);
+
+  StructDW watermark = ExtractDW(orderPixels, image);
+
+  ImageIO DwImage;
+  DwImage.CreateBMP(watermark.width, watermark.height, watermark.pixels);
+
+  string originalName = pathImage.filename().stem().string();
+  fs::path pathExtDw= resultDir / fs::path(originalName + "_ext_dw.bmp");
+
+  DwImage.WriteFileBMP(pathExtDw);
 }
 
 int WaterMark::GenerateSeed() {
@@ -127,15 +146,15 @@ vector<int> WaterMark::GenerateKey(int seed, size_t size) {
   return embedPixels;
 }
 
-void WaterMark::EmbedDW(vector<int> &order, StructBMP &image, StructBMP &logo) {
-  uint32_t widthLogo = logo.infoBmp.biWidth;
-  uint32_t heightLogo = logo.infoBmp.biHeight;
-  uint32_t sizeLogo = logo.pixels.size();
+void WaterMark::EmbedDW(vector<int> &order, StructBMP &image, StructBMP &watermark) {
+  uint32_t widthDw = watermark.infoBmp.biWidth;
+  uint32_t heightDw = watermark.infoBmp.biHeight;
+  uint32_t sizeDw = watermark.pixels.size();
   size_t index = 0;
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
-    uint8_t bitWidth = (widthLogo >> bit) & 1;
+    uint8_t bitWidth = (widthDw >> bit) & 1;
     image.pixels[pixel] &= ~(1 << bitPixel);
     image.pixels[pixel] |= (bitWidth << bitPixel);
     index++;
@@ -143,7 +162,7 @@ void WaterMark::EmbedDW(vector<int> &order, StructBMP &image, StructBMP &logo) {
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
-    uint8_t bitHeight = (heightLogo >> bit) & 1;
+    uint8_t bitHeight = (heightDw >> bit) & 1;
     image.pixels[pixel] &= ~(1 << bitPixel);
     image.pixels[pixel] |= (bitHeight << bitPixel);
     index++;
@@ -151,67 +170,67 @@ void WaterMark::EmbedDW(vector<int> &order, StructBMP &image, StructBMP &logo) {
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
-    uint8_t bitlogoSize = (sizeLogo >> bit) & 1;
+    uint8_t bitDwSize = (sizeDw >> bit) & 1;
     image.pixels[pixel] &= ~(1 << bitPixel);
-    image.pixels[pixel] |= (bitlogoSize << bitPixel);
+    image.pixels[pixel] |= (bitDwSize << bitPixel);
     index++;
   }
 
-  for (size_t i = 0; i < logo.pixels.size(); ++i) {
-    uint8_t byteLogo = logo.pixels[i];
+  for (size_t i = 0; i < watermark.pixels.size(); ++i) {
+    uint8_t byteDw = watermark.pixels[i];
     for (int bit = 0; bit < 8; ++bit) {
       int pixel = order[index];
-      uint8_t bitLogo = (byteLogo >> bit) & 1;
+      uint8_t bitDw = (byteDw >> bit) & 1;
       image.pixels[pixel] &= ~(1 << bitPixel);
-      image.pixels[pixel] |= (bitLogo << bitPixel);
+      image.pixels[pixel] |= (bitDw << bitPixel);
       index++;
     }
   }
 }
 
 StructDW WaterMark::ExtractDW(vector<int> &order, StructBMP &image) {
-  uint32_t witdhLogo = 0;
-  uint32_t heightLogo = 0;
-  uint32_t sizeLogo = 0;
+  uint32_t widthDw = 0;
+  uint32_t heightDw = 0;
+  uint32_t sizeDw = 0;
   size_t index = 0;
-  vector<uint8_t> pixelsLogo;
+  vector<uint8_t> pixelsDw;
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
     uint8_t bitWidth = (image.pixels[pixel] >> bitPixel) & 1;
-    witdhLogo |= (bitWidth << bit);
+    widthDw |= (bitWidth << bit);
     index++;
   }
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
     uint8_t bitHeight = (image.pixels[pixel] >> bitPixel) & 1;
-    heightLogo |= (bitHeight << bit);
+    heightDw |= (bitHeight << bit);
     index++;
   }
 
   for (int bit = 0; bit < 32; ++bit) {
     int pixel = order[index];
-    uint8_t bitLogo = (image.pixels[pixel] >> bitPixel) & 1;
-    sizeLogo |= (bitLogo << bit);
+    uint8_t bitDw = (image.pixels[pixel] >> bitPixel) & 1;
+    sizeDw |= (bitDw << bit);
     index++;
   }
 
-  for (size_t i = 0; i < sizeLogo; ++i) {
-    uint8_t byteLogo = 0;
+  for (size_t i = 0; i < sizeDw; ++i) {
+    uint8_t byteDw = 0;
     for (int bit = 0; bit < 8; ++bit) {
       int pixel = order[index];
-      uint8_t bitLogo = (image.pixels[pixel] >> bitPixel) & 1;
-      byteLogo |= (bitLogo << bit);
+      uint8_t bitDw = (image.pixels[pixel] >> bitPixel) & 1;
+      byteDw |= (bitDw << bit);
       index++;
     }
-    pixelsLogo.push_back(byteLogo);
+    pixelsDw.push_back(byteDw);
   }
 
   StructDW dw;
-  dw.width = witdhLogo;
-  dw.height = heightLogo;
-  dw.pixels = pixelsLogo;
+  dw.width = widthDw;
+  dw.height = heightDw;
+  dw.pixels = pixelsDw;
 
   return dw;
 }
@@ -264,4 +283,3 @@ WaterMark::SortingVariance(vector<pair<int, double>> &variancePixels) {
 
   return pixels;
 }
-

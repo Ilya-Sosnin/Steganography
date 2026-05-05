@@ -18,11 +18,12 @@ public:
   WaterMark();
   ~WaterMark();
 
-  void EmbedWaterMarkLSB(const fs::path &pathImage, const fs::path &pathLogo);
+  void EmbedWaterMarkLSB(const fs::path &pathImage, const fs::path &pathDw);
   void ExtractedMarkLSB(const fs::path &pathSeed, const fs::path &pathImage);
 
   void EmbedWaterMarkLocalVariance(const fs::path &pathImage,
-                                   const fs::path &pathLogo);
+                                   const fs::path &pathDw);
+  void ExtractWaterMarkLocalVariance(const fs::path &pathImage);
 
 private:
   int bitPixel{0};
