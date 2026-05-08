@@ -1,6 +1,6 @@
 #include "CLI/CLI.hpp"
 
-//#include "ContainerProcessor/ContainerProcessor.hpp"
+#include "ContainerProcessor/ContainerProcessor.hpp"
 #include "WaterMark/WaterMark.hpp"
 
 namespace fs = std::filesystem;
@@ -106,8 +106,7 @@ int main(int argc, char *argv[]) {
 //     return -1;
 //   }
 
-//   fs::path imagePath = fs::path(PROJECT_ROOT) / image;
-//   if (!fs::exists(imagePath)) {
+//   if (!fs::exists(image)) {
 //     std::cout << "--image does not exist\n";
 //     return -1;
 //   }
@@ -122,20 +121,20 @@ int main(int argc, char *argv[]) {
 //   ContainerProcessor containerProc;
 
 //   if (mode == "plane") {
-//     containerProc.ExtBitPlane(bitNumber, imagePath);
+//     containerProc.ExtBitPlane(bitNumber, image);
 //   } else if (mode == "embed") {
 //     if (!msgOpt->count()) {
 //       std::cout << "--message required for embed\n";
 //       return -1;
 //     }
-//     fs::path messagePath = fs::path(PROJECT_ROOT) / message;
-//     if (!fs::exists(messagePath)) {
+    
+//     if (!fs::exists(message)) {
 //       std::cout << "--message does not exist\n";
 //       return -1;
 //     }
-//     containerProc.EmbeddingData(bitNumber, imagePath, messagePath);
+//     containerProc.EmbeddingData(bitNumber, message, image);
 //   } else if (mode == "extract") {
-//     containerProc.ExtMessage(bitNumber, imagePath);
+//     containerProc.ExtMessage(bitNumber, image);
 //   } else {
 //     cout << "Error: unknown mode\n";
 //     return -1;

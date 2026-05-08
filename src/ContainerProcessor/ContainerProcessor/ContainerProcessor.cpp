@@ -10,107 +10,105 @@ ContainerProcessor::ContainerProcessor() {}
 ContainerProcessor::~ContainerProcessor() {}
 
 void ContainerProcessor::ExtBitPlane(int bitNumber, const fs::path &pathImage) {
-  vector<uint8_t> pixels = imgIO.Read(pathImage);
-  if (pixels.empty())
-    return;
+  ImageIO imgIO(pathImage);
+  StructBMP &image = imgIO.GetStructImage();
 
-  vector<uint8_t> bitPlane = ExtractBitPlane(bitNumber, pixels);
+  vector<uint8_t> bitPlane = ExtractBitPlane(bitNumber, image);
   if (bitPlane.empty())
     return;
 
-  fs::path outImageName = "ext_plane_bit_num_" + to_string(bitNumber) + ".bmp";
-  if (!imgIO.Write(outImageName, bitPlane))
-    return;
+  image.pixels = bitPlane;
+
+  string originalName = pathImage.filename().stem().string();
+  fs::path outImageName =
+      resultDir / fs::path(originalName + "_ext_plane_bit_num_" +
+                           to_string(bitNumber) + ".bmp");
+  imgIO.WriteFileBMP(outImageName);
 }
 
-void ContainerProcessor::EmbeddingData(int bitNumber, const fs::path &pathImage,
-                                       const fs::path &pathMessage) {
-  vector<uint8_t> pixels = imgIO.Read(pathImage);
-  if (pixels.empty())
-    return;
+void ContainerProcessor::EmbeddingData(int bitNumber,
+                                       const fs::path &pathMessage,
+                                       const fs::path &pathImage) {
+  ImageIO imgIO(pathImage);
+  StructBMP &image = imgIO.GetStructImage();
 
+  TextIO txtIO;
   vector<uint8_t> message = txtIO.ReadBinary(pathMessage);
   if (message.empty())
     return;
 
-  auto [sizeWriteMess, embedMessPixels] =
-      EmbedTextIntoBitPlane(bitNumber, pixels, message);
+  size_t sizeWriteMess = EmbedTextIntoBitPlane(bitNumber, message, image);
 
-  if (sizeWriteMess == 0 || embedMessPixels.empty()) {
+  if (sizeWriteMess == 0) {
     cout << "Embedding failed\n";
     return;
   }
 
-  cout << "The image " << sizeWriteMess * 8 << " bits out of "
-       << message.size() * 8 << "\n";
+  cout << sizeWriteMess << " out of " << message.size() * 8
+       << " bits message embedded in image\n";
 
-  fs::path outImageName = "embed_bit_num_" + to_string(bitNumber) + ".bmp";
-  if (!imgIO.Write(outImageName, embedMessPixels))
-    return;
+  string originalName = pathImage.filename().stem().string();
+  fs::path outImageName =
+      resultDir / fs::path(originalName + "_embed_bit_num_" +
+                           to_string(bitNumber) + ".bmp");
+  imgIO.WriteFileBMP(outImageName);
 }
 
 void ContainerProcessor::ExtMessage(int bitNumber, const fs::path &pathImage) {
-  vector<uint8_t> pixels = imgIO.Read(pathImage);
-  if (pixels.empty())
-    return;
+  ImageIO imgIO(pathImage);
+  StructBMP &image = imgIO.GetStructImage();
 
-  vector<uint8_t> message = ExtractMessage(bitNumber, pixels);
+  vector<uint8_t> message = ExtractMessage(bitNumber, image);
   if (message.empty())
     return;
 
-  fs::path resultsDir = fs::path(PROJECT_ROOT) / "results";
-  fs::create_directories(resultsDir);
-
-  fs::path outTextFile = resultsDir / ("extract_message_bit_" +
-                                       std::to_string(bitNumber) + ".txt");
+  TextIO txtIO;
+  fs::path outTextFile = resultDir / fs::path("extract_message_bit_" +
+                                              to_string(bitNumber) + ".txt");
 
   if (!txtIO.WriteBinary(outTextFile, message))
     return;
 }
 
-vector<uint8_t>
-ContainerProcessor::ExtractBitPlane(int bitNumber,
-                                    vector<uint8_t> imageBinary) {
+vector<uint8_t> ContainerProcessor::ExtractBitPlane(int bitNumber,
+                                                    StructBMP &image) {
   vector<uint8_t> imagePlane;
   imagePlane.resize(WIDTH * HEIGHT);
 
-  for (size_t i = 0; i < imageBinary.size(); ++i) {
-    int bit = (imageBinary[i] >> (bitNumber - 1)) & 1;
+  for (size_t i = 0; i < image.pixels.size(); ++i) {
+    int bit = (image.pixels[i] >> (bitNumber - 1)) & 1;
     imagePlane[i] = bit ? 255 : 0;
   }
   return imagePlane;
 }
 
-pair<size_t, vector<uint8_t>>
-ContainerProcessor::EmbedTextIntoBitPlane(int bitNumber,
-                                          vector<uint8_t> imageBinary,
-                                          vector<uint8_t> privateMessage) {
+size_t ContainerProcessor::EmbedTextIntoBitPlane(
+    int bitNumber, vector<uint8_t> &privateMessage, StructBMP &image) {
   size_t byteImage = 0;
   size_t sizeWrittenMessage = 0;
 
   for (auto byteMessage : privateMessage) {
-    if (byteImage >= imageBinary.size())
+    if (byteImage >= image.pixels.size())
       break;
 
     for (int i = 7; i >= 0; --i) {
       int bitMessage = (byteMessage >> i) & 1;
-      imageBinary[byteImage] &= ~(1 << (bitNumber - 1));
-      imageBinary[byteImage] |= (bitMessage << (bitNumber - 1));
+      image.pixels[byteImage] &= ~(1 << (bitNumber - 1));
+      image.pixels[byteImage] |= (bitMessage << (bitNumber - 1));
       byteImage++;
     }
     sizeWrittenMessage++;
   }
-  return {sizeWrittenMessage, imageBinary};
+  return sizeWrittenMessage;
 }
 
-vector<uint8_t>
-ContainerProcessor::ExtractMessage(int bitNumber,
-                                   vector<uint8_t> embedImageBinary) {
+vector<uint8_t> ContainerProcessor::ExtractMessage(int bitNumber,
+                                                   StructBMP &image) {
   uint8_t ch = 0;
   size_t count = 0;
   vector<uint8_t> extractedMessage;
 
-  for (auto byte : embedImageBinary) {
+  for (auto byte : image.pixels) {
     int bit = (byte >> (bitNumber - 1)) & 1;
     ch = (ch << 1) | bit;
     count++;

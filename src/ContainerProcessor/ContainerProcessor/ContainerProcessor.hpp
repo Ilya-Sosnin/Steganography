@@ -17,26 +17,20 @@ public:
   ~ContainerProcessor();
 
   void ExtBitPlane(int bitNumber, const fs::path &pathImage);
-  void EmbeddingData(int bitNumber, const fs::path &pathImage,
-                     const fs::path &pathMessage);
-
+  void EmbeddingData(int bitNumber, const fs::path &pathMessage,
+                     const fs::path &pathImage);
   void ExtMessage(int bitNumber, const fs::path &pathImage);
 
 private:
   static constexpr int WIDTH = 512;
   static constexpr int HEIGHT = 512;
 
-  ImageIO imgIO;
-  TextIO txtIO;
+  fs::path resultDir = PROJECT_ROOT / fs::path("results");
 
-  vector<uint8_t> ExtractBitPlane(int bitNumber, vector<uint8_t> imageBinary);
-
-  pair<size_t, vector<uint8_t>>
-  EmbedTextIntoBitPlane(int bitNumber, vector<uint8_t> binaryImage,
-                        vector<uint8_t> privateMessage);
-
-  vector<uint8_t> ExtractMessage(int bitNumber,
-                                 vector<uint8_t> embedImageBinary);
+  vector<uint8_t> ExtractBitPlane(int bitNumber, StructBMP &image);
+  size_t EmbedTextIntoBitPlane(int bitNumber, vector<uint8_t> &message,
+                               StructBMP &image);
+  vector<uint8_t> ExtractMessage(int bitNumber, StructBMP &image);
 };
 
 #endif
