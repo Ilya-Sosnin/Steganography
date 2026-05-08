@@ -1,2 +1,4 @@
 add_subdirectory(app)
-add_subdirectory(steganography)
+add_subdirectory(ContainerProcessor)
+add_subdirectory(WaterMark)
+add_subdirectory(FileIO)

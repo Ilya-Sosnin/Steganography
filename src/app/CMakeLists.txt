@@ -13,11 +13,12 @@ set_target_properties(
 target_link_libraries(
   ${target_name}
   PRIVATE
-  ContainerProcessor
   CLI11
+  Container
+  Mark
 )
 
 target_compile_definitions(
-  ${target_name} PRIVATE 
+  ${target_name} PUBLIC 
   PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
 )
